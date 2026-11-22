@@ -5,9 +5,9 @@ Game Boy DMG cart collection app for iPhone. Runs entirely on the phone and work
 ## Modules
 - **Home**: completion ring, every game as one square (green = owned), recently added carts.
 - **Catalog**: all games A → Z with your cart photos, search by title or code, All / Owned / Missing.
-- **Game**: regional variants, which ones you own (Edit owned), add a photo.
+- **Game**: regional variants and which ones you own; Edit game changes the name, year and codes, or deletes the game. "Add new cart" (last tile in Catalog) adds a game that is missing.
 - **Cart scanner** (the round + button): photograph a cart, straighten it, read the label code (DMG-XX-YYY) and save the photo with the game details in its metadata. Picking several saved photos at once adds them all to the collection.
-- **Backup** (save icon on the Home lens): Export puts your collection and photos in one .zip (Save to Files); Import restores it on this or a new phone.
+- **Backup** (save icon on the Home lens): Export puts your collection, photos and game list in one .zip (Save to Files); Import restores it on this or a new phone.
 
 Your collection and cart photos stay on your phone only.
 

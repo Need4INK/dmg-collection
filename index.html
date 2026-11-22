@@ -225,6 +225,16 @@ body{display:block}
  .codebox{margin-top:8px;padding:6px 14px 8px}.coderow input{min-height:40px}.game{margin-top:6px;padding:3px 64px 3px 12px}}
 /* Narrow screens (360px Android): Save | Add image must fit */
 @media(max-width:370px){.split .btn{padding:0 9px;font-size:14px}}
+/* Edit game: name and year become fields; variant rows get a code field and a remove button */
+#gTi{width:100%;height:40px;border:0;border-radius:10px;background:rgba(20,18,24,.18);color:#1a181d;font:700 20px/1 Jost,system-ui,sans-serif;padding:0 10px;outline:none}
+#gYi{width:76px;height:30px;border:1px solid #3b3e44;border-radius:8px;background:#18191c;color:#e8e6ea;font:500 14px Inter,system-ui,sans-serif;padding:0 8px}
+#gTi.bad,#gYi.bad,.vr input.bad{box-shadow:0 0 0 2px #d0453a}
+.vr.ed{gap:10px;cursor:default}.vr.ed .tk{flex:none;width:30px;height:46px;border:0;background:none;padding:0;display:grid;place-items:center start}
+.vr.ed input{flex:1;min-width:0;height:34px;border:1px solid #3b3e44;border-radius:8px;background:#18191c;color:#e8e6ea;font:500 14px Jost,system-ui,sans-serif;letter-spacing:1px;padding:0 8px;text-transform:uppercase}
+.vr.ed .rg{flex:none;width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+.vr.ed .rm{flex:none;width:30px;height:34px;border:0;border-radius:8px;background:#2a2730;color:#a9a4b0;font:16px/1 system-ui;padding:0}
+.vr.add,.vr.del{justify-content:center;font:500 14px Inter,system-ui,sans-serif;color:#e8e6ea}.vr.del{color:#e86a9f}.vr.del.arm{background:#ab2b64;color:#fff;margin:0 -14px;width:calc(100% + 28px)}
+.tile.new .cw{border:2px dashed #3b3e44;border-radius:8px;display:grid;place-items:center;color:#a9a4b0;font:300 30px/1 Inter,system-ui,sans-serif;aspect-ratio:56/65}
 </style>
 </head>
 <body>
@@ -284,14 +294,14 @@ body{display:block}
   <div class="banner">
     <div class="bband brow" aria-hidden="true"><i class="bst"></i><span class="bcap">GAME</span></div>
     <i class="bband bst brs" aria-hidden="true"></i>
-    <div class="bnr"><div class="rslot"><button class="back" data-back aria-label="Back"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 10H4M9 4l-6 6 6 6"/></svg></button></div><div class="gtl"><b id="gT"></b></div></div>
+    <div class="bnr"><div class="rslot"><button class="back" data-back aria-label="Back"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 10H4M9 4l-6 6 6 6"/></svg></button></div><div class="gtl"><b id="gT"></b><input id="gTi" hidden maxlength="80" placeholder="Game name" autocomplete="off" enterkeyhint="done"></div></div>
   </div>
   <div class="ghead">
     <div class="gph" id="gPh"></div>
-    <div class="gtx"><span id="gY"></span><span class="own" id="gO"></span><button class="sw" id="enG" role="switch" aria-checked="false">English<i></i></button></div>
+    <div class="gtx"><span id="gY"></span><input id="gYi" hidden inputmode="numeric" maxlength="4" placeholder="Year" autocomplete="off" enterkeyhint="done"><span class="own" id="gO"></span><button class="sw" id="enG" role="switch" aria-checked="false">English<i></i></button></div>
   </div>
   <div class="card vars" id="gVars"></div>
-  <div class="two solo" id="gRow"><button id="gForget" hidden>Forget photo</button><button id="gEdit">Edit owned</button></div>
+  <div class="two solo" id="gRow"><button id="gForget" hidden>Forget photo</button><button id="gEdit">Edit game</button></div>
 </div>
 
 <!-- Backup: export / import one .zip -->
@@ -704,10 +714,18 @@ async function tagJpeg(blob,m){const src=new Uint8Array(await blob.arrayBuffer()
  return new Blob([cat(src.slice(0,p),exif,xmp,iptc,src.slice(p))],{type:'image/jpeg'})}
 const REGIONS={USA:'North America',CAN:'Canada',EUR:'Europe',UKV:'United Kingdom',NOE:'Germany / Austria',FRG:'Germany',FRA:'France',ESP:'Spain',ITA:'Italy',HOL:'Netherlands',SCN:'Scandinavia',AUS:'Australia',ASI:'Asia',JPN:'Japan'};
 // Master list from the collection spreadsheet: [names, codes, first release year]
+// Once the game list is edited on the phone (Edit game / Add new cart / Import), the phone keeps its own copy (dmgGames) and uses it instead.
 const GAMES=DMG_GAMES;
-const BY_CODE=new Map(),BY_ID=new Map(),ALL_CODES=[];
-GAMES.forEach((g,i)=>{for(const c of g[1]){BY_CODE.set(c,i);ALL_CODES.push(c);const id=c.split('-')[1];BY_ID.set(id,i);if(id.length===4)BY_ID.set(id.slice(0,3),i)}});
-OCR.setCodes(ALL_CODES);
+const okGames=l=>Array.isArray(l)&&l.length&&l.every(g=>Array.isArray(g)&&typeof g[0]==='string'&&Array.isArray(g[1])&&g[1].length);
+try{const l=JSON.parse(localStorage.getItem('dmgGames')||'null');if(okGames(l))GAMES.splice(0,GAMES.length,...l)}catch(e){}
+const BY_CODE=new Map(),BY_ID=new Map(),ALL_CODES=[];let TOTAL=0;
+function indexGames(){BY_CODE.clear();BY_ID.clear();ALL_CODES.length=0;TOTAL=GAMES.length;
+ GAMES.forEach((g,i)=>{for(const c of g[1]){BY_CODE.set(c,i);ALL_CODES.push(c);const id=c.split('-')[1];BY_ID.set(id,i);if(id.length===4)BY_ID.set(id.slice(0,3),i)}});
+ OCR.setCodes(ALL_CODES)}
+indexGames();
+function saveGames(){try{localStorage.setItem('dmgGames',JSON.stringify(GAMES))}catch(e){}}
+// A new or renamed game goes to its A → Z place; the rest keep their order.
+function placeGame(g){const t=g[0].toLowerCase();let k=GAMES.findIndex(x=>x[0].toLowerCase()>t);if(k<0)k=GAMES.length;GAMES.splice(k,0,g);return k}
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 // My collection: a list of owned codes, imported once from a .json file (New photo → Choose File)
 // and kept only on this phone. Nothing about anyone's collection is built into the app.
@@ -814,7 +832,7 @@ $('flip').addEventListener('click',()=>{rot=(rot+3)%4;render()});
 // Cart photos live in this phone's IndexedDB (database dmgdb, store photos): key = code, value {full, thumb, t}.
 // "full" is the saved 560x650 JPEG with its dmg metadata, "thumb" a 168x195 copy for the grids.
 let preset=null,dirty=true,cur='home',stack=[],gIdx=-1,gEditing=false,filt='all';
-const PHOTOS=new Set(),THUMB=new Map(),TOTAL=GAMES.length;
+const PHOTOS=new Set(),THUMB=new Map();
 const PLACE=$('outImg').src; // grey cart drawing used when there is no photo yet
 const DB=new Promise(res=>{try{const r=indexedDB.open('dmgdb',1);r.onupgradeneeded=()=>r.result.createObjectStore('photos');
  r.onsuccess=()=>res(r.result);r.onerror=()=>res(null)}catch(e){res(null)}});
@@ -943,56 +961,95 @@ new ResizeObserver(()=>{if(cur==='home')drawGrid()}).observe($('hWrap'));
 
 // ---- Catalog ----
 let built=false;
-function buildCat(){const g=$('cGrid');g.innerHTML=GAMES.map((x,i)=>`<button class="tile" data-g="${i}"></button>`).join('');built=true}
+function buildCat(){const g=$('cGrid');g.innerHTML=GAMES.map((x,i)=>`<button class="tile" data-g="${i}"></button>`).join('')+'<button class="tile new" id="cNew"><span class="cw">+</span><span class="nm">Add new cart</span></button>';built=true;dirty=true}
 function fillTile(t){const i=+t.dataset.g,own=OWN_GAMES.has(i);t.querySelectorAll('img').forEach(im=>{lazy.unobserve(im);far.unobserve(im)});t.classList.toggle('miss',!own);
  t.innerHTML=cartHTML(i,'',true)+`<span class="nm">${esc(GAMES[i][0])}</span>`}
 function drawCat(){if(!built)buildCat();const g=$('cGrid');
- if(dirty){g.querySelectorAll('.tile').forEach(fillTile);dirty=false;loadThumbs(g)}
+ if(dirty){g.querySelectorAll('.tile[data-g]').forEach(fillTile);dirty=false;loadThumbs(g)}
  $('cCnt').innerHTML=`${OWN_GAMES.size}<small> / ${TOTAL}</small>`;
  const sp=$('cSeg').querySelectorAll('span');sp[0].textContent=TOTAL;sp[1].textContent=OWN_GAMES.size;sp[2].textContent=TOTAL-OWN_GAMES.size;sp[3].textContent=[...OWN_GAMES.values()].filter(v=>v.length>1).length;applyFilter()}
 function setFilter(f){filt=f;$('cSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.f===f));if(built)applyFilter()}
 function applyFilter(){const q=$('cQ').value.trim().toLowerCase();
- $('cGrid').querySelectorAll('.tile').forEach(t=>{const i=+t.dataset.g,own=OWN_GAMES.has(i),G=GAMES[i];
+ $('cGrid').querySelectorAll('.tile[data-g]').forEach(t=>{const i=+t.dataset.g,own=OWN_GAMES.has(i),G=GAMES[i];
   let ok=filt==='all'||(filt==='multi'?(OWN_GAMES.get(i)||[]).length>1:(filt==='own')===own);if(ok&&q)ok=G[0].toLowerCase().includes(q)||G[1].some(c=>c.toLowerCase().includes(q));t.hidden=!ok})}
 $('cSeg').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(b){setFilter(b.dataset.f);$('cGrid').scrollTop=0}});
 function setQuery(v){$('cQ').value=v;$('cQx').hidden=!v;applyFilter();$('cGrid').scrollTop=0}
 $('cQ').addEventListener('input',()=>setQuery($('cQ').value));
 $('cQx').addEventListener('click',()=>{setQuery('');$('cQ').focus()});
 $('cQ').addEventListener('keydown',e=>{if(e.key==='Enter')$('cQ').blur()});
-$('cGrid').addEventListener('click',e=>{const t=e.target.closest('[data-g]');if(t)openGame(+t.dataset.g)});
+$('cGrid').addEventListener('click',e=>{if(e.target.closest('#cNew'))return openNew();const t=e.target.closest('[data-g]');if(t)openGame(+t.dataset.g)});
 
 // ---- Game page: photo, variants, ownership ----
 // gSel = the variant shown on the page: its photo, its English switch, and what + (scanner) and Forget photo act on.
 // Each variant (exact code) keeps its own photo; tap a variant row to show it.
 // Edit owned works on a draft: ticks and forgotten photos apply only on Save; leaving the page any other way drops them.
-let gSel=null,gURL=null,gDraft=null,gForgot=null;
+let gSel=null,gURL=null,gForgot=null,gRows=null,gNew=false,gDel=false;
+// Edit game works on a draft (name, year, variant rows with codes and ticks, forgotten photos); only Save applies it.
 const pickSel=i=>{const mine=OWN_GAMES.get(i)||[];return photoCode(i)||GAMES[i][1].find(c=>PHOTOS.has(c))||mine[0]||GAMES[i][1][0]};
 function openGame(i){gIdx=i;endEdit();gSel=pickSel(i);go('gv')}
-function endEdit(){gEditing=false;gDraft=null;gForgot=null}
-const isOwn=c=>gEditing?gDraft.has(c):OWN_CODES.has(c),hasPh=c=>PHOTOS.has(c)&&!(gEditing&&gForgot.has(c));
-async function drawGame(){const i=gIdx,G=GAMES[i];if(!G)return;if(!G[1].includes(gSel))gSel=pickSel(i);
- const sel=gSel,own=isOwn(sel),has=hasPh(sel),mine=G[1].filter(isOwn);
- $('gT').textContent=G[0];$('gY').textContent=`${G[2]} · ${G[1].length} variant${G[1].length>1?'s':''}`;
- $('gO').textContent=mine.length?`Owned · ${mine.length} of ${G[1].length}`:'Missing';$('gO').className=mine.length?'own':'';
- $('enG').setAttribute('aria-checked',ENG.has(sel)?'true':'false');$('enG').setAttribute('aria-label','English · '+sel);
- $('gVars').classList.toggle('edit',gEditing);$('gEdit').classList.toggle('on',gEditing);$('gEdit').textContent=gEditing?'Save':'Edit owned';
- const f=$('gForget'),forgot=gEditing&&gForgot.has(sel);f.hidden=!gEditing;$('gRow').classList.toggle('solo',!gEditing);
- f.textContent=forgot?'Keep photo':'Forget photo';f.disabled=!(PHOTOS.has(sel));
- $('gVars').innerHTML=G[1].map(c=>{const o=isOwn(c),s=c.split('-').pop();
+function openNew(){gIdx=-1;gSel=null;endEdit();go('gv');gNew=true;startEdit(['','',''])}
+function startEdit(G){gEditing=true;gDel=false;gForgot=new Set();gRows=(G[1]||[]).map(c=>({o:c,c,own:OWN_CODES.has(c)}));if(!gRows.length)gRows.push({o:null,c:'',own:true});
+ $('gTi').value=G[0];$('gYi').value=G[2]||'';['gTi','gYi'].forEach(id=>$(id).classList.remove('bad'));drawGame();if(gNew)setTimeout(()=>$('gTi').focus(),50)}
+function endEdit(){gEditing=false;gRows=null;gForgot=null;gDel=false;if(gNew){gNew=false}}
+const rowCodes=()=>gRows.map(r=>r.c.trim().toUpperCase());
+const isOwn=c=>gEditing?gRows.some(r=>r.c.trim().toUpperCase()===c&&r.own):OWN_CODES.has(c),hasPh=c=>PHOTOS.has(c)&&!(gEditing&&gForgot.has(c));
+async function drawGame(){const i=gIdx,G=gNew?[$('gTi').value,rowCodes().filter(Boolean),$('gYi').value]:GAMES[i];if(!G)return;
+ if(!gNew&&!G[1].includes(gSel))gSel=pickSel(i);
+ const sel=gSel,own=sel&&isOwn(sel),has=sel&&hasPh(sel),codes=gEditing?rowCodes().filter(Boolean):G[1],mine=codes.filter(isOwn);
+ $('gT').textContent=G[0];$('gT').hidden=gEditing;$('gTi').hidden=!gEditing;$('gYi').hidden=!gEditing;
+ $('gY').textContent=gEditing?`${codes.length} variant${codes.length===1?'':'s'}`:`${G[2]} · ${G[1].length} variant${G[1].length>1?'s':''}`;
+ $('gO').textContent=mine.length?`Owned · ${mine.length} of ${codes.length}`:'Missing';$('gO').className=mine.length?'own':'';
+ $('enG').setAttribute('aria-checked',sel&&ENG.has(sel)?'true':'false');$('enG').setAttribute('aria-label','English · '+(sel||''));$('enG').disabled=!sel||gNew;
+ $('gVars').classList.toggle('edit',gEditing);$('gEdit').classList.toggle('on',gEditing);$('gEdit').textContent=gEditing?'Save':'Edit game';
+ const f=$('gForget'),forgot=gEditing&&sel&&gForgot.has(sel);f.hidden=!gEditing;$('gRow').classList.toggle('solo',!gEditing);
+ f.textContent=forgot?'Keep photo':'Forget photo';f.disabled=!(sel&&PHOTOS.has(sel));
+ if(gEditing){const ae=document.activeElement,fk=ae&&ae.dataset?ae.dataset.k:null,pos=ae&&ae.selectionStart;
+  $('gVars').innerHTML=gRows.map((r,k)=>{const c=r.c.trim().toUpperCase(),sx=c.split('-').pop();
+   return `<div class="vr ed${r.own?' on':''}${c&&c===sel?' sel':''}"><button class="tk" data-t="${k}" aria-label="Owned">${FLAG(r.own)}</button><input data-k="${k}" value="${esc(r.c)}" placeholder="DMG-XX-YYY" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done"><span class="rg">${esc(c?REGIONS[sx]||'':'')}</span><button class="rm" data-r="${k}" aria-label="Remove variant">×</button></div>`}).join('')
+   +'<button class="vr add" id="gAdd">+ Add variant</button>'+(gNew?'':`<button class="vr del${gDel?' arm':''}" id="gDelB">${gDel?'Tap again to delete this game':'Delete game'}</button>`);
+  if(fk!=null){const el=$('gVars').querySelector(`input[data-k="${fk}"]`);if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}}}
+ else $('gVars').innerHTML=G[1].map(c=>{const o=isOwn(c),s=c.split('-').pop();
   return `<button class="vr${o?' on':''}${c===sel?' sel':''}" data-c="${c}">${FLAG(o)}<span class="cd">${c}</span>${ENG.has(c)?'<b class="en">EN</b>':''}<span>${esc(REGIONS[s]||s)}</span></button>`}).join('');
  const ph=$('gPh');ph.innerHTML=own||has?`<span class="cart"><img alt="${esc(G[0])} · ${sel}" src="${PLACE}"></span>`:'<span class="ghost"></span>';
  if(has){const r=await idb('readonly',s=>s.get(sel));if(r&&gIdx===i&&gSel===sel&&cur==='gv'){if(gURL)URL.revokeObjectURL(gURL);gURL=URL.createObjectURL(r.full);const im=ph.querySelector('img');if(im)im.src=gURL}}}
-// Edit owned → Save: apply the draft (ownership + forgotten photos).
-$('gEdit').addEventListener('click',async()=>{const G=GAMES[gIdx];if(!G)return;
- if(!gEditing){gEditing=true;gDraft=new Set(G[1].filter(c=>OWN_CODES.has(c)));gForgot=new Set();return drawGame()}
- const s=new Set(OWN_CODES),added=[];for(const c of G[1]){const o=gDraft.has(c);if(o&&!s.has(c))added.push(c);o?s.add(c):s.delete(c)}
- setOwned([...s]);try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}markEdit();addRecent(added);
+// Moving a code (renamed variant) carries its ownership, English flag, recent entry and photo; dropping one removes them.
+async function moveCode(a,b){if(ENG.has(a)){ENG.delete(a);ENG.add(b)}
+ try{localStorage.setItem('dmgRecent',JSON.stringify(recentList().map(r=>r.c===a?{...r,c:b}:r)))}catch(e){}
+ if(PHOTOS.has(a)){const r=await idb('readonly',st=>st.get(a));if(r){await idb('readwrite',st=>st.put(r,b));PHOTOS.add(b)}await idb('readwrite',st=>st.delete(a));PHOTOS.delete(a)}
+ if(THUMB.has(a)){URL.revokeObjectURL(THUMB.get(a));THUMB.delete(a)}}
+async function dropCode(a){ENG.delete(a);try{localStorage.setItem('dmgRecent',JSON.stringify(recentList().filter(r=>r.c!==a)))}catch(e){}
+ if(PHOTOS.has(a)){await idb('readwrite',st=>st.delete(a));PHOTOS.delete(a)}if(THUMB.has(a)){URL.revokeObjectURL(THUMB.get(a));THUMB.delete(a)}}
+function commitGames(owned){indexGames();setOwned(owned);saveGames();
+ try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]));localStorage.setItem('dmgEnglish',JSON.stringify([...ENG]))}catch(e){}
+ markEdit();built=false;dirty=true}
+// Save: checks the draft (name, 4-digit year, valid codes not used by another game), then applies it.
+async function saveGame(){const old=gNew?null:GAMES[gIdx],t=$('gTi').value.trim().replace(/\s+/g,' '),y=$('gYi').value.trim(),codes=rowCodes();
+ let ok=true;$('gTi').classList.toggle('bad',!t);if(!t)ok=false;const yb=!/^(19|20)\d\d$/.test(y);$('gYi').classList.toggle('bad',yb);if(yb)ok=false;
+ $('gVars').querySelectorAll('input[data-k]').forEach(el=>{const k=+el.dataset.k,c=codes[k],other=BY_CODE.get(c),bad=!CODE_RE.test(c)||codes.indexOf(c)!==k||(other!==undefined&&(gNew||other!==gIdx));el.classList.toggle('bad',bad);if(bad)ok=false});
+ if(!codes.length)ok=false;if(!ok)return;
+ const own=new Set(OWN_CODES),added=[];
+ for(const r of gRows){const c=r.c.trim().toUpperCase();if(r.o&&r.o!==c){own.delete(r.o);await moveCode(r.o,c)}}
+ if(old)for(const c of old[1])if(!gRows.some(r=>r.o===c)){own.delete(c);await dropCode(c)}
+ for(const r of gRows){const c=r.c.trim().toUpperCase();if(r.own){if(!own.has(c))added.push(c);own.add(c)}else own.delete(c)}
  for(const c of gForgot){await idb('readwrite',st=>st.delete(c));PHOTOS.delete(c);if(THUMB.has(c)){URL.revokeObjectURL(THUMB.get(c));THUMB.delete(c)}}
- dirty=true;endEdit();drawGame()});
-// Tap a variant: show it; while editing also switch its tick.
-$('gVars').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b)return;const c=b.dataset.c;gSel=c;
- if(gEditing)gDraft.has(c)?gDraft.delete(c):gDraft.add(c);drawGame()});
-$('enG').addEventListener('click',()=>{if(!gSel)return;setEnglish(gSel,!ENG.has(gSel));drawGame()});
+ if(old)GAMES.splice(gIdx,1);const g=[t,codes,+y],idx=placeGame(g);commitGames([...own]);addRecent(added);
+ const sel=gSel&&codes.includes(gSel)?gSel:null;gNew=false;endEdit();gIdx=idx;gSel=sel||pickSel(idx);drawGame()}
+async function deleteGame(){const G=GAMES[gIdx];if(!G)return;const own=new Set(OWN_CODES);
+ for(const c of G[1]){own.delete(c);await dropCode(c)}GAMES.splice(gIdx,1);commitGames([...own]);endEdit();gIdx=-1;back()}
+$('gEdit').addEventListener('click',()=>{if(gEditing)return saveGame();if(GAMES[gIdx])startEdit(GAMES[gIdx])});
+// Not editing: tap a variant to show it. Editing: tick = owned, × = remove the row, fields edit name / year / codes.
+$('gVars').addEventListener('click',e=>{
+ if(!gEditing){const b=e.target.closest('[data-c]');if(!b)return;gSel=b.dataset.c;return drawGame()}
+ const t=e.target.closest('[data-t]'),rm=e.target.closest('[data-r]');
+ if(t){const r=gRows[+t.dataset.t];r.own=!r.own;const c=r.c.trim().toUpperCase();if(c)gSel=c;gDel=false;return drawGame()}
+ if(rm){gRows.splice(+rm.dataset.r,1);if(!gRows.length)gRows.push({o:null,c:'',own:false});gDel=false;return drawGame()}
+ if(e.target.closest('#gAdd')){gRows.push({o:null,c:'',own:false});gDel=false;drawGame();const l=$('gVars').querySelectorAll('input[data-k]');l[l.length-1].focus();return}
+ if(e.target.closest('#gDelB')){if(gDel)return deleteGame();gDel=true;return drawGame()}});
+$('gVars').addEventListener('input',e=>{const k=e.target.dataset.k;if(k==null)return;gRows[+k].c=e.target.value;e.target.classList.remove('bad');
+ const c=e.target.value.trim().toUpperCase(),rg=e.target.parentNode.querySelector('.rg');if(rg)rg.textContent=REGIONS[c.split('-').pop()]||'';
+ const n=rowCodes().filter(Boolean).length;$('gY').textContent=`${n} variant${n===1?'':'s'}`});
+['gTi','gYi'].forEach(id=>{$(id).addEventListener('input',()=>$(id).classList.remove('bad'));$(id).addEventListener('keydown',e=>{if(e.key==='Enter')$(id).blur()})});
+$('enG').addEventListener('click',()=>{if(!gSel||gNew)return;setEnglish(gSel,!ENG.has(gSel));drawGame()});
 // Forget photo (while editing): marks the shown variant's photo to be deleted on Save; tap again (Keep photo) to undo.
 $('gForget').addEventListener('click',()=>{const c=gSel;if(!gEditing||!c||!PHOTOS.has(c))return;gForgot.has(c)?gForgot.delete(c):gForgot.add(c);drawGame()});
 // Ownership changed in the scanner: screens redraw when they are shown again.
@@ -1033,7 +1090,7 @@ async function drawBackup(msg){if(bkBusy)return;const job=++bkJob;bkPend=null;bk
  const keys=(await idb('readonly',s=>s.getAllKeys()))||[],recs=(await idb('readonly',s=>s.getAll()))||[],files=[],ph={};
  for(let k=0;k<keys.length;k++){if(job!==bkJob)return;const r=recs[k];if(!r||!r.full)continue;files.push({name:`photos/${keys[k]}.jpg`,data:new Uint8Array(await r.full.arrayBuffer())});ph[keys[k]]=r.t||0}
  if(job!==bkJob||cur!=='bk')return;
- files.unshift({name:'collection.json',data:new TextEncoder().encode(JSON.stringify({dmgdb:1,exported:new Date().toISOString(),owned:[...OWN_CODES],recent:recentList(),english:[...ENG],photos:ph}))});
+ files.unshift({name:'collection.json',data:new TextEncoder().encode(JSON.stringify({dmgdb:1,exported:new Date().toISOString(),games:GAMES,owned:[...OWN_CODES],recent:recentList(),english:[...ENG],photos:ph}))});
  bkZip=zipBlob(files);bkShow(OWN_CODES.size,files.length-1,bkZip.size,msg||bkStamp());$('bEx').disabled=false}
 $('bEx').addEventListener('click',async()=>{if(bkPend)return bkRestore();if(!bkZip)return;
  const name=`dmgdb-backup-${new Date().toISOString().slice(0,10)}.zip`,file=new File([bkZip],name,{type:'application/zip'});
@@ -1053,6 +1110,7 @@ async function bkRestore(){const {z,col,photos}=bkPend;bkPend=null;bkBusy=true;b
   for(let k=0;k<photos.length;k++){$('bT').textContent=`Importing ${k+1} / ${photos.length}`;const code=photos[k].split('/').pop().slice(0,-4).toUpperCase();
    try{const full=new Blob([await entryBytes(z.get(photos[k]))],{type:'image/jpeg'}),thumb=await thumbOf(full);
     await idb('readwrite',s=>s.put({full,thumb,tv:3,t:(col.photos||{})[code]||Date.now()},code));PHOTOS.add(code);n++}catch(e){}}
+  if(okGames(col.games)){GAMES.splice(0,GAMES.length,...col.games);indexGames();saveGames();built=false} // backups carry the game list too
   setOwned(col.owned);ENG.clear();(Array.isArray(col.english)?col.english:[]).forEach(c=>ENG.add(c));
   try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]));localStorage.setItem('dmgRecent',JSON.stringify(Array.isArray(col.recent)?col.recent.slice(-60):[]));localStorage.setItem('dmgEnglish',JSON.stringify([...ENG]))}catch(e){}
  }catch(e){}
