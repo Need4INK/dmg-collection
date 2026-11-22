@@ -125,7 +125,7 @@ body{display:block}
 .cw{position:relative;display:block}
 .cart{display:block;aspect-ratio:56/65;width:100%;background:#5d5a63;padding:2px}.cart img{display:block;width:100%;height:100%;object-fit:cover;background:#a09ca7}
 .ghost{display:block;aspect-ratio:56/65;width:100%;border:1px dashed #4a4651;border-radius:4px 10px 4px 4px;background:#26232a}
-.dot{position:absolute;right:5px;bottom:5px;width:20px;height:20px;border-radius:50%;background:#9bbc0f;box-shadow:0 0 0 2px rgba(0,0,0,.35);display:grid;place-items:center;font:700 12px/1 Jost,system-ui,sans-serif;font-style:normal;color:#121114}
+.dot{position:absolute;right:4px;bottom:4px;width:16px;height:16px;border-radius:50%;background:#9bbc0f;box-shadow:0 0 0 2px rgba(0,0,0,.35);display:grid;place-items:center;font:700 10px/1 Jost,system-ui,sans-serif;font-style:normal;color:#121114}
 .wide{flex:none;height:52px;border-radius:12px;border:0;background:#2a2730;color:#fff;font:700 15px Jost,system-ui,sans-serif;letter-spacing:2px;margin:auto 64px 0 0}
 .fab{position:fixed;z-index:5;right:max(20px,calc(50vw - 300px));bottom:calc(16px + env(safe-area-inset-bottom));width:52px;height:52px;padding:0;border-radius:50%;border:0;background:#ab2b64;color:#fff;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.5);cursor:pointer;-webkit-tap-highlight-color:transparent}
 .fab .x{display:none}.fab.close .x{display:block}.fab.close .p{display:none}
@@ -141,9 +141,9 @@ body{display:block}
 .qx{flex:none;width:22px;height:22px;margin-right:-4px;padding:0;border:0;border-radius:50%;background:#4a4651;color:#fff;display:grid;place-items:center;cursor:pointer}.qx[hidden]{display:none}
 .seg{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:#1c1a20;border-radius:12px;padding:4px}
 .seg button{height:36px;border:0;border-radius:9px;background:transparent;color:#a9a4b0;padding:0 2px;font:600 12px Inter,system-ui,sans-serif;white-space:nowrap}.seg button.on{background:#3a3740;color:#fff}
-.tiles{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 10px;align-content:start;padding:0 0 84px;-webkit-mask-image:linear-gradient(#000 calc(100% - 48px),transparent);mask-image:linear-gradient(#000 calc(100% - 48px),transparent)}
-.tile{display:flex;flex-direction:column;gap:6px;background:none;border:0;padding:0;color:#e8e6ea;text-align:left;font:12px/1.25 Inter,system-ui,sans-serif}
-.tile .nm{height:30px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.tiles{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 8px;align-content:start;padding:0 0 84px;-webkit-mask-image:linear-gradient(#000 calc(100% - 48px),transparent);mask-image:linear-gradient(#000 calc(100% - 48px),transparent)}
+.tile{display:flex;flex-direction:column;gap:5px;background:none;border:0;padding:0;color:#e8e6ea;text-align:left;font:10px/1.25 Inter,system-ui,sans-serif}
+.tile .nm{height:25px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .tile.miss .nm{color:#77727e}
 .ghead{flex:none;display:flex;gap:16px;align-items:flex-end}
 .gph{flex:none;width:150px}
@@ -746,12 +746,12 @@ async function idb(mode,fn){const db=await DB;if(!db)return null;return new Prom
   tx.oncomplete=()=>res(out);tx.onerror=tx.onabort=()=>res(null)}catch(e){res(null)}})}
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 idb('readonly',s=>s.getAllKeys()).then(k=>{(k||[]).forEach(c=>PHOTOS.add(c));dirty=true;refresh()});
-const TW=336,TH=390; // grid thumbnails: sharp at 3 columns on a 3x screen
+const TW=168,TH=195; // grid thumbnails (4 per row): small to keep the app light
 async function thumbOf(blob){const u=URL.createObjectURL(blob);try{const im=await new Promise((r,j)=>{const i=new Image();i.onload=()=>r(i);i.onerror=j;i.src=u});
  const c=document.createElement('canvas');c.width=TW;c.height=TH;c.getContext('2d').drawImage(im,0,0,TW,TH);
  return await new Promise(r=>c.toBlob(r,'image/jpeg',.8))}finally{URL.revokeObjectURL(u)}}
 async function keepPhoto(code,blob,tag){try{const full=tag&&quad?await tagJpeg(blob,photoMeta(code)).catch(()=>blob):blob,thumb=await thumbOf(full);
- await idb('readwrite',s=>s.put({full,thumb,tv:2,t:Date.now()},code));PHOTOS.add(code);
+ await idb('readwrite',s=>s.put({full,thumb,tv:3,t:Date.now()},code));PHOTOS.add(code);
  if(THUMB.has(code)){URL.revokeObjectURL(THUMB.get(code));THUMB.delete(code)}dirty=true}catch(e){}}
 // Several photos saved by this app, picked at once: each one is filed under the code in its metadata and marked as owned.
 async function importPhotos(fs){let n=0,skip=0;const add=[];
@@ -766,8 +766,8 @@ function addRecent(codes){if(!codes.length)return;const l=recentList().filter(r=
 // The photo shown for a game: an owned variant that has a photo.
 const photoCode=i=>(OWN_GAMES.get(i)||[]).find(c=>PHOTOS.has(c));
 async function thumbURL(code){if(THUMB.has(code))return THUMB.get(code);const r=await idb('readonly',s=>s.get(code));if(!r)return PLACE;
- // Thumbs made before v24 were 168x195 (too soft for 3 columns): remake them once from the full photo.
- if(r.tv!==2&&r.full){try{r.thumb=await thumbOf(r.full);r.tv=2;await idb('readwrite',s=>s.put(r,code))}catch(e){}}
+ // v24 made large 336x390 thumbs (tv 2): shrink them back once from the full photo.
+ if(r.tv===2&&r.full){try{r.thumb=await thumbOf(r.full);r.tv=3;await idb('readwrite',s=>s.put(r,code))}catch(e){}}
  const u=URL.createObjectURL(r.thumb||r.full);THUMB.set(code,u);return u}
 function cartHTML(i,cls='',dot){const own=OWN_GAMES.has(i),pc=own&&photoCode(i);
  return own?`<span class="cw"><span class="cart"><img alt="" ${pc?`data-c="${pc}" src="${PLACE}"`:`src="${PLACE}"`}></span>${dot?((n=>n>1?`<i class="dot">${n}</i>`:'<i class="dot"></i>')((OWN_GAMES.get(i)||[]).length)):''}</span>`:'<span class="ghost"></span>'}
