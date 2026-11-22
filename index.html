@@ -237,6 +237,10 @@ body{display:block}
 .tile.new .cw{border:2px dashed #3b3e44;border-radius:8px;display:grid;place-items:center;color:#a9a4b0;font:300 30px/1 Inter,system-ui,sans-serif;aspect-ratio:56/65}
 .vr.ed .rm.arm{width:auto;padding:0 10px;background:#ab2b64;color:#fff;font:500 13px Inter,system-ui,sans-serif}
 #gForget.arm{background:#ab2b64;color:#fff}
+.ghost{position:relative}.dot.pe{overflow:visible}.dot.pe.w{background:#e8e6ea}.dot.pe .pn{position:absolute;left:0;top:-5px}
+.dot.pe.n{width:auto;min-width:16px;padding:0 4px 0 17px;border-radius:8px}
+.cust{align-self:flex-start;display:inline-flex;align-items:center;gap:3px;height:20px;padding:0 8px 0 2px;border-radius:10px;background:#e8e6ea;color:#141416;font:500 11px Inter,system-ui,sans-serif;margin-top:2px}.cust[hidden]{display:none}.cust .pn{width:16px;height:16px}
+.vr.rst{justify-content:center;font:500 14px Inter,system-ui,sans-serif;color:#e8e6ea}.vr.rst.arm{background:#ab2b64;color:#fff;margin:0 -14px;width:calc(100% + 28px)}
 </style>
 </head>
 <body>
@@ -300,7 +304,7 @@ body{display:block}
   </div>
   <div class="ghead">
     <div class="gph" id="gPh"></div>
-    <div class="gtx"><span id="gY"></span><input id="gYi" hidden inputmode="numeric" maxlength="4" placeholder="Year" autocomplete="off" enterkeyhint="done"><span class="own" id="gO"></span><button class="sw" id="enG" role="switch" aria-checked="false">English<i></i></button></div>
+    <div class="gtx"><span id="gY"></span><input id="gYi" hidden inputmode="numeric" maxlength="4" placeholder="Year" autocomplete="off" enterkeyhint="done"><span class="own" id="gO"></span><button class="sw" id="enG" role="switch" aria-checked="false">English<i></i></button><span class="cust" id="gC" hidden></span></div>
   </div>
   <div class="card vars" id="gVars"></div>
   <div class="two solo" id="gRow"><button id="gForget" hidden>Forget photo</button><button id="gEdit">Edit game</button></div>
@@ -878,8 +882,11 @@ function addRecent(codes){if(!codes.length)return;const l=recentList().filter(r=
 const photoCode=i=>(OWN_GAMES.get(i)||[]).find(c=>PHOTOS.has(c));
 async function thumbURL(code){if(THUMB.has(code))return THUMB.get(code);const r=await idb('readonly',s=>s.get(code));if(!r)return PLACE;
  const u=URL.createObjectURL(r.thumb||r.full);THUMB.set(code,u);return u}
-function cartHTML(i,cls='',dot){const own=OWN_GAMES.has(i),pc=own&&photoCode(i);
- return own?`<span class="cw"><span class="cart"><img alt="" ${pc?`data-c="${pc}" src="${PLACE}"`:`src="${PLACE}"`}></span>${dot?((n=>n>1?`<i class="dot">${n}</i>`:'<i class="dot"></i>')((OWN_GAMES.get(i)||[]).length)):''}</span>`:'<span class="ghost"></span>'}
+// Pencil = a game I edited or added (not the built-in version). Sticks out of the tile's dot: green if owned, white if not.
+const PEN='<svg class="pn" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><g transform="rotate(-45 10 10)" stroke="#141416" stroke-width="1.3" stroke-linejoin="round"><path d="M-1 10L5 6.8V13.2Z" fill="#ffe08a"/><path d="M-1 10L1.6 8.6V11.4Z" fill="#141416"/><rect x="5" y="6.8" width="11.5" height="6.4" fill="#f5a623"/><path d="M16.5 6.8H18.6A3.2 3.2 0 0 1 18.6 13.2H16.5Z" fill="#e8453c"/></g></svg>';
+const isMine=i=>{const g=GAMES[i];return !!g&&(g.u!=null||(g.k!=null&&g.k in MODS.e))};
+function cartHTML(i,cls='',dot){const own=OWN_GAMES.has(i),pc=own&&photoCode(i),pe=dot&&isMine(i),n=(OWN_GAMES.get(i)||[]).length;
+ return own?`<span class="cw"><span class="cart"><img alt="" ${pc?`data-c="${pc}" src="${PLACE}"`:`src="${PLACE}"`}></span>${dot?`<i class="dot${pe?' pe':''}${pe&&n>1?' n':''}">${pe?PEN:''}${n>1?n:''}</i>`:''}</span>`:`<span class="ghost">${pe?'<i class="dot pe w">'+PEN+'</i>':''}</span>`}
 // Photos load when their tile scrolls into view.
 const lazy=new IntersectionObserver(es=>{for(const e of es){if(!e.isIntersecting)continue;const im=e.target;lazy.unobserve(im);
  thumbURL(im.dataset.c).then(u=>{if(!im.isConnected)return;im.src=u;if($('cGrid').contains(im))far.observe(im)})}},{rootMargin:'300px'});
@@ -1014,6 +1021,7 @@ async function drawGame(){const i=gIdx,G=gNew?[$('gTi').value,rowCodes().filter(
  const sel=gSel,own=sel&&isOwn(sel),has=sel&&hasPh(sel),codes=gEditing?rowCodes().filter(Boolean):G[1],mine=codes.filter(isOwn);
  $('gT').textContent=G[0];$('gT').hidden=gEditing;$('gTi').hidden=!gEditing;$('gYi').hidden=!gEditing;
  $('gY').textContent=gEditing?`${codes.length} variant${codes.length===1?'':'s'}`:`${G[2]} · ${G[1].length} variant${G[1].length>1?'s':''}`;
+const mineG=!gNew&&isMine(i);$('gC').hidden=!mineG&&!gNew;$('gC').innerHTML=PEN+(gNew||G.u!=null?'Added':'Edited');
  $('gO').textContent=mine.length?`Owned · ${mine.length} of ${codes.length}`:'Missing';$('gO').className=mine.length?'own':'';
  $('enG').setAttribute('aria-checked',sel&&ENG.has(sel)?'true':'false');$('enG').setAttribute('aria-label','English · '+(sel||''));$('enG').disabled=!sel||gNew;
  $('gVars').classList.toggle('edit',gEditing);$('gEdit').classList.toggle('on',gEditing);$('gEdit').textContent=gEditing?'Save':'Edit game';
@@ -1022,7 +1030,7 @@ async function drawGame(){const i=gIdx,G=gNew?[$('gTi').value,rowCodes().filter(
  if(gEditing){const ae=document.activeElement,fk=ae&&ae.dataset?ae.dataset.k:null,pos=ae&&ae.selectionStart;
   $('gVars').innerHTML=gRows.map((r,k)=>{const c=r.c.trim().toUpperCase(),sx=c.split('-').pop();
    return `<div class="vr ed${r.own?' on':''}${c&&c===sel?' sel':''}"><button class="tk" data-t="${k}" aria-label="Owned">${FLAG(r.own)}</button><input data-k="${k}" value="${esc(r.c)}" placeholder="DMG-XX-YYY" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done"><span class="rg">${esc(c?REGIONS[sx]||'':'')}</span><button class="rm${gArm===k?' arm':''}" data-r="${k}" aria-label="Remove variant">${gArm===k?'Delete':'×'}</button></div>`}).join('')
-   +'<button class="vr add" id="gAdd">+ Add variant</button>'+(gNew?'':`<button class="vr del${gArm==='game'?' arm':''}" id="gDelB">${gArm==='game'?'Tap again to delete this game':'Delete game'}</button>`);
+   +'<button class="vr add" id="gAdd">+ Add variant</button>'+(!gNew&&G.k!=null&&G.k in MODS.e?`<button class="vr rst${gArm==='reset'?' arm':''}" id="gRst">${gArm==='reset'?'Tap again to reset to built-in':'Reset to built-in'}</button>`:'')+(gNew?'':`<button class="vr del${gArm==='game'?' arm':''}" id="gDelB">${gArm==='game'?'Tap again to delete this game':'Delete game'}</button>`);
   if(fk!=null){const el=$('gVars').querySelector(`input[data-k="${fk}"]`);if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}}}
  else $('gVars').innerHTML=G[1].map(c=>{const o=isOwn(c),s=c.split('-').pop();
   return `<button class="vr${o?' on':''}${c===sel?' sel':''}" data-c="${c}">${FLAG(o)}<span class="cd">${c}</span>${ENG.has(c)?'<b class="en">EN</b>':''}<span>${esc(REGIONS[s]||s)}</span></button>`}).join('');
@@ -1051,6 +1059,10 @@ async function saveGame(){const old=gNew?null:GAMES[gIdx],t=$('gTi').value.trim(
  const g=[t,codes,+y];let u=null;if(old&&old.k)MODS.e[old.k]=g;else if(old){const x=MODS.n.find(x=>x.u===old.u);if(x)x.g=g;u=old.u}else{u=Date.now();MODS.n.push({u,g})}
  commitGames([...own]);addRecent(added);const idx=GAMES.findIndex(x=>old&&old.k?x.k===old.k:x.u===u);
  const sel=gSel&&codes.includes(gSel)?gSel:null;gNew=false;endEdit();gIdx=idx;gSel=sel||pickSel(idx);drawGame()}
+// Reset: back to the built-in version; codes only my version had lose their ownership, English flag and photo.
+async function resetGame(){const G=GAMES[gIdx];if(!G||G.k==null)return;const k=G.k,b=BASE.find(x=>keyOf(x)===k),own=new Set(OWN_CODES);
+ for(const c of G[1])if(!b||!b[1].includes(c)){own.delete(c);await dropCode(c)}delete MODS.e[k];commitGames([...own]);endEdit();
+ gIdx=GAMES.findIndex(x=>x.k===k);if(gIdx<0)return back();gSel=pickSel(gIdx);drawGame()}
 async function deleteGame(){const G=GAMES[gIdx];if(!G)return;const own=new Set(OWN_CODES);
  for(const c of G[1]){own.delete(c);await dropCode(c)}if(G.k)MODS.e[G.k]=null;else MODS.n=MODS.n.filter(x=>x.u!==G.u);commitGames([...own]);endEdit();gIdx=-1;back()}
 $('gEdit').addEventListener('click',()=>{if(gEditing)return saveGame();if(GAMES[gIdx])startEdit(GAMES[gIdx])});
@@ -1061,7 +1073,8 @@ $('gVars').addEventListener('click',e=>{
  if(t){const r=gRows[+t.dataset.t];r.own=!r.own;const c=r.c.trim().toUpperCase();if(c)gSel=c;gArm=false;return drawGame()}
  if(rm){const k=+rm.dataset.r;if(gArm!==k){gArm=k;return drawGame()}gRows.splice(k,1);if(!gRows.length)gRows.push({o:null,c:'',own:false});gArm=false;return drawGame()}
  if(e.target.closest('#gAdd')){gRows.push({o:null,c:'',own:false});gArm=false;drawGame();const l=$('gVars').querySelectorAll('input[data-k]');l[l.length-1].focus();return}
- if(e.target.closest('#gDelB')){if(gArm==='game')return deleteGame();gArm='game';return drawGame()}});
+ if(e.target.closest('#gDelB')){if(gArm==='game')return deleteGame();gArm='game';return drawGame()}
+ if(e.target.closest('#gRst')){if(gArm==='reset')return resetGame();gArm='reset';return drawGame()}});
 $('gVars').addEventListener('input',e=>{const k=e.target.dataset.k;if(k==null)return;gRows[+k].c=e.target.value;e.target.classList.remove('bad');
  const c=e.target.value.trim().toUpperCase(),rg=e.target.parentNode.querySelector('.rg');if(rg)rg.textContent=REGIONS[c.split('-').pop()]||'';
  const n=rowCodes().filter(Boolean).length;$('gY').textContent=`${n} variant${n===1?'':'s'}`});
@@ -1072,9 +1085,9 @@ $('gForget').addEventListener('click',()=>{const c=gSel;if(!gEditing||!c||!PHOTO
  if(gForgot.has(c))gForgot.delete(c);else if(gArm!=='photo'){gArm='photo';return drawGame()}else gForgot.add(c);gArm=false;drawGame()});
 // Any other tap cancels a delete waiting for confirmation.
 document.addEventListener('pointerdown',e=>{if(gArm===false||!gEditing)return;const t=e.target;
- if(t.closest('#gForget')&&gArm==='photo'||t.closest('#gDelB')&&gArm==='game'||t.closest(`[data-r="${gArm}"]`))return;gArm=false;
+ if(t.closest('#gForget')&&gArm==='photo'||t.closest('#gDelB')&&gArm==='game'||t.closest('#gRst')&&gArm==='reset'||t.closest(`[data-r="${gArm}"]`))return;gArm=false;
  $('gVars').querySelectorAll('.rm.arm').forEach(b=>{b.classList.remove('arm');b.textContent='×'}); // restyle in place so the tap itself still lands
- const d=$('gDelB');if(d){d.classList.remove('arm');d.textContent='Delete game'}const f=$('gForget');if(f.classList.contains('arm')){f.classList.remove('arm');f.textContent='Forget photo'}},true);
+ const d=$('gDelB');if(d){d.classList.remove('arm');d.textContent='Delete game'}const rs=$('gRst');if(rs){rs.classList.remove('arm');rs.textContent='Reset to built-in'}const f=$('gForget');if(f.classList.contains('arm')){f.classList.remove('arm');f.textContent='Forget photo'}},true);
 // Ownership changed in the scanner: screens redraw when they are shown again.
 $('own').addEventListener('click',()=>{dirty=true});
 // ---- Backup: one .zip (collection.json + photos/CODE.jpg) to keep in Files. Import restores it and replaces this phone's data. ----
