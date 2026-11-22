@@ -137,6 +137,8 @@ body{display:block}
 .search{flex:none;display:flex;align-items:center;gap:8px;height:44px;background:#1c1a20;border-radius:12px;padding:0 14px;color:#a9a4b0}
 .search input{flex:1;height:100%;background:transparent;border:0;color:#fff;font:16px Inter,system-ui,sans-serif;outline:none;-webkit-appearance:none;appearance:none}
 .search input::placeholder{color:#8d8895}
+.search input::-webkit-search-cancel-button{-webkit-appearance:none;display:none}
+.qx{flex:none;width:22px;height:22px;margin-right:-4px;padding:0;border:0;border-radius:50%;background:#4a4651;color:#fff;display:grid;place-items:center;cursor:pointer}.qx[hidden]{display:none}
 .seg{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;background:#1c1a20;border-radius:12px;padding:4px}
 .seg button{height:36px;border:0;border-radius:9px;background:transparent;color:#a9a4b0;font:600 13px Inter,system-ui,sans-serif;white-space:nowrap}.seg button.on{background:#3a3740;color:#fff}
 .tiles{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 8px;align-content:start;padding:0 0 84px;-webkit-mask-image:linear-gradient(#000 calc(100% - 48px),transparent);mask-image:linear-gradient(#000 calc(100% - 48px),transparent)}
@@ -206,6 +208,7 @@ body{display:block}
   <label class="search">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
     <input id="cQ" type="search" placeholder="Search title or code" aria-label="Search title or code" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+    <button class="qx" id="cQx" type="button" aria-label="Clear search" hidden><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 2l8 8M10 2L2 10"/></svg></button>
   </label>
   <div class="seg" id="cSeg">
     <button data-f="all" class="on">All <span></span></button>
@@ -774,7 +777,9 @@ function clearScan(){src=null;srcData=null;quad=null;rot=0;lastBlob=null;manual=
  view.style.display='none';$('empty').style.display='';for(const id of ['auto','reset','flip','save'])$(id).disabled=true;
  if(outURL){URL.revokeObjectURL(outURL);outURL=null}$('outImg').src=PLACE;$('outMeta').innerHTML=`<b>${OW}×${OH}</b> · –`;
  $('code').value='';codeChanged();status('')}
-function go(id,push=true){if(id===cur)return refresh();if(push)stack.push(cur);if(cur==='scan'){preset=null;clearScan()}cur=id;
+function go(id,push=true){if(id===cur)return refresh();if(push)stack.push(cur);if(cur==='scan'){preset=null;clearScan()}
+ if(id==='home'&&$('cQ').value){$('cQ').value='';$('cQx').hidden=true;if(built)applyFilter()} // back on the cover: the catalog search starts empty again
+ cur=id;
  for(const s of document.querySelectorAll('.scr'))s.classList.toggle('on',s.id===id);
  const f=$('fab'),sc=id==='scan';f.classList.toggle('close',sc);f.setAttribute('aria-label',sc?'Close scanner':'Scan a cart');
  if(sc)layout();refresh()}
@@ -816,7 +821,9 @@ function applyFilter(){const q=$('cQ').value.trim().toLowerCase();
  $('cGrid').querySelectorAll('.tile').forEach(t=>{const i=+t.dataset.g,own=OWN_GAMES.has(i),G=GAMES[i];
   let ok=filt==='all'||(filt==='own')===own;if(ok&&q)ok=G[0].toLowerCase().includes(q)||G[1].some(c=>c.toLowerCase().includes(q));t.hidden=!ok})}
 $('cSeg').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(b){setFilter(b.dataset.f);$('cGrid').scrollTop=0}});
-$('cQ').addEventListener('input',()=>{applyFilter();$('cGrid').scrollTop=0});
+function setQuery(v){$('cQ').value=v;$('cQx').hidden=!v;applyFilter();$('cGrid').scrollTop=0}
+$('cQ').addEventListener('input',()=>setQuery($('cQ').value));
+$('cQx').addEventListener('click',()=>{setQuery('');$('cQ').focus()});
 $('cQ').addEventListener('keydown',e=>{if(e.key==='Enter')$('cQ').blur()});
 $('cGrid').addEventListener('click',e=>{const t=e.target.closest('[data-g]');if(t)openGame(+t.dataset.g)});
 
