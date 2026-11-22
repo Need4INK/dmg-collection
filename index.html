@@ -124,7 +124,7 @@ body{display:block}
 #home .banner,#cat .banner{position:relative;container-type:inline-size;padding-top:calc(6.5% + 12px)}
 /* Catalog lens: same size and spot as the cover's; only the counter, at exactly the cover's counter spot (9px = where the cover's 74px text block starts inside its 92px row); back button in the ring's column. */
 #cat .bnr{align-items:flex-start;height:48px}#cat .btx{margin-top:9px}
-.rslot{flex:none;width:92px;height:48px;display:grid;place-items:center}#cat .rslot .back{width:40px;height:40px}
+.rslot{flex:none;width:92px;height:40px;margin-top:8px;display:grid;place-items:center start} /* same box as the counter: back is centred on it, left edge on the search bar's */#cat .rslot .back{width:40px;height:40px}
 /* same lens size as the cover: below the stripes 48px counter row + 4px + 40px search = the cover's 92px ring row */
 #cat .banner{gap:4px}#cat .search{height:40px}
 /* Same layout as the scanner lens (stripes + caption). cqw here = banner width minus its 32px side padding, hence the small px corrections. */
