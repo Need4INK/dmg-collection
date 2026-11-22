@@ -116,10 +116,10 @@ body{display:block}
 .app button{font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .banner{flex:none;background:#7c7482;border-radius:10px 10px 30px 10px;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 2px 0 rgba(0,0,0,.18)}
 /* Cover: the top band is kept only as a spacer (banner stays put); the banner carries the scanner lens's stripes at the same spot instead. */
-#home .topband,#cat .topband,#gv .topband{visibility:hidden}
-#home .banner,#cat .banner,#gv .banner{position:relative;container-type:inline-size;padding-top:calc(6.5% + 12px)}
+#home .topband,#cat .topband,#gv .topband,#bk .topband{visibility:hidden}
+#home .banner,#cat .banner,#gv .banner,#bk .banner{position:relative;container-type:inline-size;padding-top:calc(6.5% + 12px)}
 /* Catalog lens: same size and spot as the cover's; only the counter, at exactly the cover's counter spot (9px = where the cover's 74px text block starts inside its 92px row); back button in the ring's column. */
-#cat .bnr{align-items:flex-start;height:48px}#cat .btx,#gv .btx{margin-top:9px}
+#cat .bnr{align-items:flex-start;height:48px}#cat .btx,#gv .btx,#bk .btx{margin-top:9px}
 /* Game lens: same size and spot; back button where it is on the Catalog; title + year where the counter is */
 /* Game lens: back button at the Catalog's spot; the title gets two reserved lines right after it, centred on it.
    The photo rides up over the lens, 8px under the title, its left edge on the variant checkboxes (14px in).
@@ -129,7 +129,7 @@ body{display:block}
 .gtl b{font:700 22px/1.1 Jost,system-ui,sans-serif;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 #gv .ghead{margin-top:-62px;padding-left:14px;align-items:flex-start;position:relative;z-index:1}
 #gv .gtx{padding:60px 0 0}
-.rslot{flex:none;width:92px;height:40px;margin-top:8px;display:grid;place-items:center start} /* same box as the counter: back is centred on it, left edge on the search bar's */#cat .rslot .back{width:40px;height:40px}
+.rslot{flex:none;width:92px;height:40px;margin-top:8px;display:grid;place-items:center start} /* same box as the counter: back is centred on it, left edge on the search bar's */#cat .rslot .back,#bk .rslot .back{width:40px;height:40px}
 /* same lens size as the cover: below the stripes 48px counter row + 4px + 40px search = the cover's 92px ring row */
 #cat .banner{gap:4px}#cat .search{height:40px}
 /* Same layout as the scanner lens (stripes + caption). cqw here = banner width minus its 32px side padding, hence the small px corrections. */
@@ -193,6 +193,9 @@ body{display:block}
 .two button.on{background:#ab2b64}
 .two.three{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.two.three button{font-size:13px;padding:0 4px}
 .two button:disabled{opacity:.4;cursor:default}
+/* Home: save icon under the short right stripe (opens Backup) */
+.bkb{position:absolute;left:92.25%;top:calc(6.5cqw + 2px);transform:translateX(-50%);width:40px;height:40px;padding:0;border:0;background:none;color:#1a181d;display:grid;place-items:center}
+#bk .bnr{align-items:flex-start;height:92px}
 .two button[hidden]{display:none}.two.solo{grid-template-columns:minmax(0,1fr)}
 /* English-language switch (scanner: right of "Label code"; game page: right of the photo) */
 .cbh{display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -213,6 +216,7 @@ body{display:block}
   <div class="banner">
     <div class="bband brow" aria-hidden="true"><i class="bst"></i><span class="bcap">GAME BOY COLLECTION</span></div>
     <i class="bband bst brs" aria-hidden="true"></i>
+    <button class="bkb" id="toBk" aria-label="Backup"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 4a1 1 0 0 1 1-1h11.5L19 6.5V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M7 3v5h7V3M6.5 19v-6h9v6"/></svg></button>
     <div class="bnr">
       <div class="ring" id="hRing"><span id="hPct">0%</span></div>
       <div class="btx">
@@ -269,6 +273,18 @@ body{display:block}
   </div>
   <div class="card vars" id="gVars"></div>
   <div class="two solo" id="gRow"><button id="gForget" hidden>Forget photo</button><button id="gEdit">Edit owned</button></div>
+</div>
+
+<!-- Backup: export / import one .zip -->
+<div class="scr app" id="bk">
+  <div class="stripes topband" aria-hidden="true"><i></i><i></i></div>
+  <div class="banner">
+    <div class="bband brow" aria-hidden="true"><i class="bst"></i><span class="bcap">BACKUP</span></div>
+    <i class="bband bst brs" aria-hidden="true"></i>
+    <div class="bnr"><div class="rslot"><button class="back" data-back aria-label="Back"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 10H4M9 4l-6 6 6 6"/></svg></button></div><div class="btx"><div class="big" id="bN"></div><b class="lbl" id="bP"></b><span id="bT"></span></div></div>
+  </div>
+  <div class="two" id="bRow"><button id="bIn">Import</button><button id="bEx" class="on">Export</button></div>
+  <input type="file" id="bFile" accept=".zip,application/zip">
 </div>
 
 <button class="fab" id="fab" aria-label="Scan a cart">
@@ -826,7 +842,7 @@ function clearScan(){src=null;srcData=null;quad=null;rot=0;lastBlob=null;manual=
  view.style.display='none';$('empty').style.display='';for(const id of ['auto','reset','flip','save'])$(id).disabled=true;
  if(outURL){URL.revokeObjectURL(outURL);outURL=null}$('outImg').src=PLACE;$('outMeta').innerHTML=`<b>${OW}×${OH}</b> · –`;
  $('code').value='';codeChanged();status('')}
-function go(id,push=true){if(id===cur)return refresh();if(push)stack.push(cur);if(cur==='scan'){preset=null;clearScan()}
+function go(id,push=true){if(id===cur)return refresh();if(push)stack.push(cur);if(cur==='bk'&&!bkBusy){bkZip=null;bkPend=null;bkJob++}if(cur==='scan'){preset=null;clearScan()}
  if(cur==='gv'&&gEditing)endEdit(); // left without Save: edits are dropped
  if(id==='home'&&$('cQ').value){$('cQ').value='';$('cQx').hidden=true;if(built)applyFilter()} // back on the cover: the catalog search starts empty again
  cur=id;
@@ -839,8 +855,9 @@ $('fab').addEventListener('click',()=>{if(cur==='scan')return back();const c=cur
  if(c){preset=c;$('code').value=c;manual=true;codeChanged()}});
 document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',back));
 $('toCat').addEventListener('click',()=>go('cat'));
+$('toBk').addEventListener('click',()=>go('bk'));
 $('hAll').addEventListener('click',()=>{setFilter('own');go('cat')});
-function refresh(){if(cur==='home')drawHome();else if(cur==='cat')drawCat();else if(cur==='gv')drawGame()}
+function refresh(){if(cur==='home')drawHome();else if(cur==='cat')drawCat();else if(cur==='gv')drawGame();else if(cur==='bk')drawBackup()}
 
 // ---- Home cover ----
 function drawHome(){const own=OWN_GAMES.size,p=TOTAL?Math.round(own/TOTAL*100):0;
@@ -950,6 +967,61 @@ $('enG').addEventListener('click',()=>{if(!gSel)return;setEnglish(gSel,!ENG.has(
 $('gForget').addEventListener('click',()=>{const c=gSel;if(!gEditing||!c||!PHOTOS.has(c))return;gForgot.has(c)?gForgot.delete(c):gForgot.add(c);drawGame()});
 // Ownership changed in the scanner: screens redraw when they are shown again.
 $('own').addEventListener('click',()=>{dirty=true});
+// ---- Backup: one .zip (collection.json + photos/CODE.jpg) to keep in Files. Import restores it and replaces this phone's data. ----
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC[(c^u[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0}
+function zipBlob(files){const enc=new TextEncoder(),parts=[],cd=[],d=new Date();let off=0; // stored, no compression (JPEGs don't shrink)
+ const dt=(d.getFullYear()-1980)<<9|(d.getMonth()+1)<<5|d.getDate(),tm=d.getHours()<<11|d.getMinutes()<<5|d.getSeconds()>>1;
+ for(const f of files){const nm=enc.encode(f.name),crc=crc32(f.data),n=f.data.length,h=new DataView(new ArrayBuffer(30)),c=new DataView(new ArrayBuffer(46));
+  h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x800,true);h.setUint16(10,tm,true);h.setUint16(12,dt,true);h.setUint32(14,crc,true);h.setUint32(18,n,true);h.setUint32(22,n,true);h.setUint16(26,nm.length,true);
+  c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x800,true);c.setUint16(12,tm,true);c.setUint16(14,dt,true);c.setUint32(16,crc,true);c.setUint32(20,n,true);c.setUint32(24,n,true);c.setUint16(28,nm.length,true);c.setUint32(42,off,true);
+  parts.push(h,nm,f.data);cd.push(c,nm);off+=30+nm.length+n}
+ const e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cd.reduce((s,p)=>s+p.byteLength,0),true);e.setUint32(16,off,true);
+ return new Blob([...parts,...cd,e],{type:'application/zip'})}
+function unzip(buf){const v=new DataView(buf),u=new Uint8Array(buf),dec=new TextDecoder(),out=new Map();let e=-1;
+ for(let i=u.length-22;i>=Math.max(0,u.length-65557);i--)if(v.getUint32(i,true)===0x06054b50){e=i;break}
+ if(e<0)throw 0;let p=v.getUint32(e+16,true);
+ for(let k=v.getUint16(e+10,true);k>0;k--){if(v.getUint32(p,true)!==0x02014b50)throw 0;const nl=v.getUint16(p+28,true),lo=v.getUint32(p+42,true),cs=v.getUint32(p+20,true),
+  name=dec.decode(u.subarray(p+46,p+46+nl)),ds=lo+30+v.getUint16(lo+26,true)+v.getUint16(lo+28,true);
+  if(!name.startsWith('__MACOSX'))out.set(name,{m:v.getUint16(p+10,true),data:u.subarray(ds,ds+cs)});p+=46+nl+v.getUint16(p+30,true)+v.getUint16(p+32,true)}
+ return out}
+async function entryBytes(x){if(x.m===0)return x.data; // re-zipped elsewhere: deflate
+ if(x.m===8&&window.DecompressionStream)return new Uint8Array(await new Response(new Blob([x.data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());throw 0}
+let bkZip=null,bkPend=null,bkJob=0,bkBusy=false;
+const MB=b=>b<1048576?Math.max(1,Math.round(b/1024))+' KB':(b/1048576).toFixed(b<10485760?1:0)+' MB';
+function bkStamp(){const t=+localStorage.getItem('dmgBackupT')||0;return t?'Last export '+new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'Not exported yet'}
+function bkShow(carts,photos,size,sub){$('bN').innerHTML=`${carts}<small> carts</small>`;$('bP').textContent=`${photos} PHOTOS`+(size?` · ${MB(size)}`:'');$('bT').textContent=sub}
+function bkBtns(ask,off){$('bIn').textContent=ask?'Cancel':'Import';$('bEx').textContent=ask?'Replace':'Export';$('bIn').disabled=!!off;$('bEx').disabled=!!off}
+// Opening the screen prepares the file at once, so Export can hand it straight to the share sheet (Save to Files).
+async function drawBackup(msg){if(bkBusy)return;const job=++bkJob;bkPend=null;bkZip=null;bkBtns(false);$('bEx').disabled=true;
+ bkShow(OWN_CODES.size,PHOTOS.size,0,'Preparing…');
+ const keys=(await idb('readonly',s=>s.getAllKeys()))||[],recs=(await idb('readonly',s=>s.getAll()))||[],files=[],ph={};
+ for(let k=0;k<keys.length;k++){if(job!==bkJob)return;const r=recs[k];if(!r||!r.full)continue;files.push({name:`photos/${keys[k]}.jpg`,data:new Uint8Array(await r.full.arrayBuffer())});ph[keys[k]]=r.t||0}
+ if(job!==bkJob||cur!=='bk')return;
+ files.unshift({name:'collection.json',data:new TextEncoder().encode(JSON.stringify({dmgdb:1,exported:new Date().toISOString(),owned:[...OWN_CODES],recent:recentList(),english:[...ENG],photos:ph}))});
+ bkZip=zipBlob(files);bkShow(OWN_CODES.size,files.length-1,bkZip.size,msg||bkStamp());$('bEx').disabled=false}
+$('bEx').addEventListener('click',async()=>{if(bkPend)return bkRestore();if(!bkZip)return;
+ const name=`dmgdb-backup-${new Date().toISOString().slice(0,10)}.zip`,file=new File([bkZip],name,{type:'application/zip'});
+ try{if(navigator.canShare&&navigator.canShare({files:[file]}))await navigator.share({files:[file]});
+  else{const a=document.createElement('a'),u=URL.createObjectURL(file);a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
+  localStorage.setItem('dmgBackupT',Date.now());$('bT').textContent=bkStamp()}catch(e){}});
+$('bIn').addEventListener('click',()=>{if(bkPend)return drawBackup();$('bFile').click()});
+// Picking a backup shows what is in it and asks before replacing anything.
+$('bFile').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f||bkBusy)return;bkJob++;bkZip=null;
+ try{const z=unzip(await f.arrayBuffer()),names=[...z.keys()],cj=names.find(n=>/(^|\/)collection\.json$/.test(n));if(!cj)throw 0;
+  const col=JSON.parse(new TextDecoder().decode(await entryBytes(z.get(cj))));if(!col||col.dmgdb!==1||!Array.isArray(col.owned))throw 0;
+  const photos=names.filter(n=>/(^|\/)photos\/DMG-[A-Z0-9-]+\.jpg$/i.test(n));
+  bkPend={z,col,photos};bkShow(col.owned.length,photos.length,f.size,"Replace this phone's collection?");bkBtns(true)}
+ catch(err){bkPend=null;bkBtns(false);$('bEx').disabled=true;$('bT').textContent='Not a DMG db backup'}});
+async function bkRestore(){const {z,col,photos}=bkPend;bkPend=null;bkBusy=true;bkBtns(false,true);let n=0;
+ try{await idb('readwrite',s=>s.clear());PHOTOS.clear();for(const u of THUMB.values())URL.revokeObjectURL(u);THUMB.clear();
+  for(let k=0;k<photos.length;k++){$('bT').textContent=`Importing ${k+1} / ${photos.length}`;const code=photos[k].split('/').pop().slice(0,-4).toUpperCase();
+   try{const full=new Blob([await entryBytes(z.get(photos[k]))],{type:'image/jpeg'}),thumb=await thumbOf(full);
+    await idb('readwrite',s=>s.put({full,thumb,tv:3,t:(col.photos||{})[code]||Date.now()},code));PHOTOS.add(code);n++}catch(e){}}
+  setOwned(col.owned);ENG.clear();(Array.isArray(col.english)?col.english:[]).forEach(c=>ENG.add(c));
+  try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]));localStorage.setItem('dmgRecent',JSON.stringify(Array.isArray(col.recent)?col.recent.slice(-60):[]));localStorage.setItem('dmgEnglish',JSON.stringify([...ENG]))}catch(e){}
+ }catch(e){}
+ dirty=true;bkBusy=false;if(cur==='bk')drawBackup(`Imported ✓ · ${n} photos`)}
 refresh();
 }
 </script>
