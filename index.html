@@ -118,18 +118,18 @@ body{display:block}
 /* Cover: the top band is kept only as a spacer (banner stays put); the banner carries the scanner lens's stripes at the same spot instead. */
 #home .topband,#cat .topband,#gv .topband,#bk .topband{visibility:hidden}
 #home .banner,#cat .banner,#gv .banner,#bk .banner{position:relative;container-type:inline-size;padding-top:calc(6.5% + 12px)}
-/* Catalog lens: same size and spot as the cover's; only the counter, at exactly the cover's counter spot (9px = where the cover's 74px text block starts inside its 92px row); back button in the ring's column. */
-#cat .bnr{align-items:flex-start;height:48px}#cat .btx,#gv .btx,#bk .btx{margin-top:9px}
+/* Catalog lens: same size as the cover's; back button and counter centred between the stripes and the search bar (same spot on Game and Backup). */
+#cat .bnr{align-items:flex-start;height:48px}#cat .btx,#bk .btx{margin-top:0}
 /* Game lens: same size and spot; back button where it is on the Catalog; title + year where the counter is */
 /* Game lens: back button at the Catalog's spot; the title gets two reserved lines right after it, centred on it.
    The photo rides up over the lens, 8px under the title, its left edge on the variant checkboxes (14px in).
-   Numbers: back centre 28px into the 92px row; title box 48px (28 ± 24); photo top 60px = 32px row + 16px padding + 14px gap above the lens bottom. */
+   Numbers: back centre 20px into the 92px row; title box 48px (20 ± 24); photo top 68px above the lens bottom. */
 #gv .bnr{align-items:flex-start;height:92px}#gv .rslot{width:40px}#gv .rslot .back{width:40px;height:40px}
-.gtl{flex:1;height:48px;margin-top:4px;display:flex;align-items:center;color:#1a181d}
+.gtl{flex:1;height:48px;margin-top:-4px;display:flex;align-items:center;color:#1a181d}
 .gtl b{font:700 22px/1.1 Jost,system-ui,sans-serif;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-#gv .ghead{margin-top:-62px;padding-left:14px;align-items:flex-start;position:relative;z-index:1}
-#gv .gtx{padding:60px 0 0}
-.rslot{flex:none;width:92px;height:40px;margin-top:8px;display:grid;place-items:center start} /* same box as the counter: back is centred on it, left edge on the search bar's */#cat .rslot .back,#bk .rslot .back{width:40px;height:40px}
+#gv .ghead{margin-top:-70px;padding-left:14px;align-items:flex-start;position:relative;z-index:1}
+#gv .gtx{padding:68px 0 0}
+.rslot{flex:none;width:92px;height:40px;margin-top:0;display:grid;place-items:center start} /* same box as the counter: back is centred on it, left edge on the search bar's */#cat .rslot .back,#bk .rslot .back{width:40px;height:40px}
 /* same lens size as the cover: below the stripes 48px counter row + 4px + 40px search = the cover's 92px ring row */
 #cat .banner{gap:4px}#cat .search{height:40px}
 /* Same layout as the scanner lens (stripes + caption). cqw here = banner width minus its 32px side padding, hence the small px corrections. */
