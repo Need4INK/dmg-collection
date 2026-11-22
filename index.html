@@ -340,15 +340,23 @@ const vs={s:1,tx:0,ty:0},pts=new Map();let pan=null,pinch=null,lastTap=0;
 function status(t,ok){$('led').classList.toggle('on',!!ok)} // the red LED shows whether a cart was found
 function inset(){const w=src.width,h=src.height,m=.1;return [[w*m,h*m],[w*(1-m),h*m],[w*(1-m),h*(1-m)],[w*m,h*(1-m)]]}
 
-function onPick(e){const inp=e.target,f=inp.files[0];inp.value='';if(!f)return;
+// A photo this app saved before (dmg metadata, or exactly 560x650) is already straightened:
+// use the whole picture as the cart instead of detecting a cart inside it, and take its code from the metadata.
+async function scannedInfo(f){try{const s=new TextDecoder('latin1').decode(await f.slice(0,262144).arrayBuffer()),m=s.match(/<dmg:Code>([^<]*)<\/dmg:Code>/);
+ return m||s.includes('dmg-cart-scanner.local/ns/')?{code:m?m[1].trim().toUpperCase():''}:null}catch(e){return null}}
+async function onPick(e){const inp=e.target,f=inp.files[0];inp.value='';if(!f)return;
  if(/\.json$/i.test(f.name)||f.type==='application/json'){importOwned(f);return}
  status('Loading photo…');
+ const prior=await scannedInfo(f);
  const url=URL.createObjectURL(f),img=new Image();
  img.onload=()=>{const s=Math.min(1,MAXSRC/Math.max(img.naturalWidth,img.naturalHeight));
   src=document.createElement('canvas');src.width=Math.round(img.naturalWidth*s);src.height=Math.round(img.naturalHeight*s);
   const c=src.getContext('2d',{willReadFrequently:true});c.drawImage(img,0,0,src.width,src.height);srcData=c.getImageData(0,0,src.width,src.height).data;
   URL.revokeObjectURL(url);$('code').value='';manual=false;ocrJob++;srcVer++;reading=false;pending=false;codeChanged();$('codeBox').hidden=false;$('empty').style.display='none';view.style.display='block';for(const id of ['auto','reset','flip'])$(id).disabled=false;
-  quad=null;layout();fitPhoto();runDetect();};
+  const done=prior||(img.naturalWidth===OW&&img.naturalHeight===OH);
+  if(done){const w=src.width,h=src.height;quad=[[0,0],[w,0],[w,h],[0,h]];rot=0;layout();fitPhoto();status('',true);draw();render();
+   if(prior&&CODE_RE.test(prior.code)){$('code').value=prior.code;manual=true;codeChanged()}}
+  else{quad=null;layout();fitPhoto();runDetect()}};
  img.onerror=()=>{URL.revokeObjectURL(url);status('Could not read this image. Try another one.')};img.src=url;}
 $('file').addEventListener('change',onPick);
 
@@ -442,7 +450,7 @@ $('reset').addEventListener('click',()=>{if(!src)return;quad=inset();fitPhoto();
 const shareSave={save:async({filename,data})=>{const f=new File([data],filename,{type:'image/jpeg'});
  if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]})}catch(e){if(e&&e.name==='AbortError'){const x=new Error('declined');x.code='declined';throw x}throw e}return}
  const a=document.createElement('a'),u=URL.createObjectURL(data);a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}};
-(async()=>{try{const framed=window.top!==window;for(let i=0;framed&&i<50&&!window.claude;i++)await new Promise(r=>setTimeout(r,100));dl=window.claude?await window.claude.use('downloads'):null}catch(e){dl=null}if(!dl)dl=shareSave;$('save').hidden=false;codeChanged()})();
+(async()=>{await 0;/* let the rest of the script finish first */try{const framed=window.top!==window;for(let i=0;framed&&i<50&&!window.claude;i++)await new Promise(r=>setTimeout(r,100));dl=window.claude?await window.claude.use('downloads'):null}catch(e){dl=null}if(!dl)dl=shareSave;$('save').hidden=false;codeChanged()})();
 // Offline: cache the app files on the phone (ignored where service workers aren't allowed).
 try{if('serviceWorker' in navigator&&location.protocol==='https:'&&window.top===window){
  // When an update takes over, reload once so the new version shows straight away.
