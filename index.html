@@ -172,7 +172,7 @@ body{display:block}
 .two button.on{background:#ab2b64}
 .two.three{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.two.three button{font-size:13px;padding:0 4px}
 .two button:disabled{opacity:.4;cursor:default}
-.two button[hidden]{display:none}
+.two button[hidden]{display:none}.two.solo{grid-template-columns:minmax(0,1fr)}
 /* English-language switch (scanner: right of "Label code"; game page: right of the photo) */
 .cbh{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .sw{flex:none;display:inline-flex;align-items:center;gap:8px;background:none;border:0;padding:0;margin:0;color:#a9a4b0;font:600 13px Inter,system-ui,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -242,7 +242,7 @@ body{display:block}
     <div class="gtx"><b id="gT"></b><span id="gY"></span><span class="own" id="gO"></span><button class="sw" id="enG" role="switch" aria-checked="false">English<i></i></button></div>
   </div>
   <div class="card vars" id="gVars"></div>
-  <div class="two"><button id="gPhoto">Photo</button><button id="gForget" hidden>Forget photo</button><button id="gEdit">Edit owned</button></div>
+  <div class="two solo" id="gRow"><button id="gForget" hidden>Forget photo</button><button id="gEdit">Edit owned</button></div>
 </div>
 
 <button class="fab" id="fab" aria-label="Scan a cart">
@@ -803,7 +803,9 @@ function go(id,push=true){if(id===cur)return refresh();if(push)stack.push(cur);i
  const f=$('fab'),sc=id==='scan';f.classList.toggle('close',sc);f.setAttribute('aria-label',sc?'Close scanner':'Scan a cart');
  if(sc)layout();refresh()}
 function back(){go(stack.pop()||'home',false)}
-$('fab').addEventListener('click',()=>cur==='scan'?back():go('scan'));
+// + on a game page opens the scanner with the shown variant's code already filled in (kept when a photo is picked).
+$('fab').addEventListener('click',()=>{if(cur==='scan')return back();const c=cur==='gv'?gSel:null;go('scan');
+ if(c){preset=c;$('code').value=c;manual=true;codeChanged()}});
 document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',back));
 $('toCat').addEventListener('click',()=>go('cat'));
 $('hAll').addEventListener('click',()=>{setFilter('own');go('cat')});
@@ -860,7 +862,7 @@ async function drawGame(){const i=gIdx,G=GAMES[i];if(!G)return;const mine=OWN_GA
  $('gVars').classList.toggle('edit',gEditing);$('gEdit').classList.toggle('on',gEditing);$('gEdit').textContent=gEditing?'Done':'Edit owned';
  clearTimeout(forgetT);$('gForget').classList.remove('on');$('gForget').textContent='Forget photo';$('gForget').disabled=!has;
  // Forget photo only while editing: it takes the place of Photo, so the row keeps its two buttons.
- $('gForget').hidden=!gEditing;$('gPhoto').hidden=gEditing;
+ $('gForget').hidden=!gEditing;$('gRow').classList.toggle('solo',!gEditing);
  $('gVars').innerHTML=G[1].map(c=>{const o=OWN_CODES.has(c),s=c.split('-').pop();
   return `<button class="vr${o?' on':''}${c===sel?' sel':''}" data-c="${c}">${FLAG(o)}<span class="cd">${c}</span>${ENG.has(c)?'<b class="en">EN</b>':''}<span>${esc(REGIONS[s]||s)}</span></button>`}).join('');
  const ph=$('gPh');ph.innerHTML=own||has?`<span class="cart"><img alt="${esc(G[0])} · ${sel}" src="${PLACE}"></span>`:'<span class="ghost"></span>';
@@ -871,8 +873,6 @@ $('gVars').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(
  if(gEditing){const s=new Set(OWN_CODES),add=!s.has(c);add?s.add(c):s.delete(c);setOwned([...s]);try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}if(add)addRecent([c]);dirty=true}
  drawGame()});
 $('enG').addEventListener('click',()=>{if(!gSel)return;setEnglish(gSel,!ENG.has(gSel));drawGame()});
-// Photo: opens the photo picker in the scanner with the shown variant's code filled in.
-$('gPhoto').addEventListener('click',()=>{if(!gSel)return;preset=gSel;go('scan');$('file').click()});
 // Forget photo: removes the shown variant's photo from this phone (tap twice: the first tap asks).
 $('gForget').addEventListener('click',async()=>{const b=$('gForget'),c=gSel;if(!c||!PHOTOS.has(c))return;
  if(!b.classList.contains('on')){b.classList.add('on');b.textContent='Sure?';clearTimeout(forgetT);forgetT=setTimeout(()=>{b.classList.remove('on');b.textContent='Forget photo'},3000);return}
