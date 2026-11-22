@@ -157,9 +157,9 @@ body{display:block}
 .tile .nm{height:25px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .tile.miss .nm{color:#77727e}
 .ghead{flex:none;display:flex;gap:16px;align-items:flex-end}
-.gph{flex:none;width:150px}
+.gph{flex:none;width:176px}
 .gtx{display:flex;flex-direction:column;gap:6px;padding-bottom:4px;font-size:13px;color:#a9a4b0}
-.gtx b{font:700 24px/1.1 Jost,system-ui,sans-serif;color:#e8e6ea}
+.gtx b{font:700 22px/1.1 Jost,system-ui,sans-serif;color:#e8e6ea}
 .gtx .own,.own{color:#9bbc0f}
 .vars{flex:1;min-height:0;overflow-y:auto;padding:4px 14px;gap:0}
 .vars.edit{box-shadow:inset 0 0 0 2px #ab2b64}
@@ -797,6 +797,7 @@ function clearScan(){src=null;srcData=null;quad=null;rot=0;lastBlob=null;manual=
  if(outURL){URL.revokeObjectURL(outURL);outURL=null}$('outImg').src=PLACE;$('outMeta').innerHTML=`<b>${OW}×${OH}</b> · –`;
  $('code').value='';codeChanged();status('')}
 function go(id,push=true){if(id===cur)return refresh();if(push)stack.push(cur);if(cur==='scan'){preset=null;clearScan()}
+ if(cur==='gv'&&gEditing)endEdit(); // left without Save: edits are dropped
  if(id==='home'&&$('cQ').value){$('cQ').value='';$('cQx').hidden=true;if(built)applyFilter()} // back on the cover: the catalog search starts empty again
  cur=id;
  for(const s of document.querySelectorAll('.scr'))s.classList.toggle('on',s.id===id);
@@ -849,34 +850,39 @@ $('cQ').addEventListener('keydown',e=>{if(e.key==='Enter')$('cQ').blur()});
 $('cGrid').addEventListener('click',e=>{const t=e.target.closest('[data-g]');if(t)openGame(+t.dataset.g)});
 
 // ---- Game page: photo, variants, ownership ----
-// gSel = the variant shown on the page: its photo, its English switch, and what "Photo" / "Forget photo" act on.
+// gSel = the variant shown on the page: its photo, its English switch, and what + (scanner) and Forget photo act on.
 // Each variant (exact code) keeps its own photo; tap a variant row to show it.
-let gSel=null,gURL=null,forgetT=0;
+// Edit owned works on a draft: ticks and forgotten photos apply only on Save; leaving the page any other way drops them.
+let gSel=null,gURL=null,gDraft=null,gForgot=null;
 const pickSel=i=>{const mine=OWN_GAMES.get(i)||[];return photoCode(i)||GAMES[i][1].find(c=>PHOTOS.has(c))||mine[0]||GAMES[i][1][0]};
-function openGame(i){gIdx=i;gEditing=false;gSel=pickSel(i);go('gv')}
-async function drawGame(){const i=gIdx,G=GAMES[i];if(!G)return;const mine=OWN_GAMES.get(i)||[];if(!G[1].includes(gSel))gSel=pickSel(i);
- const sel=gSel,own=OWN_CODES.has(sel),has=PHOTOS.has(sel);
+function openGame(i){gIdx=i;endEdit();gSel=pickSel(i);go('gv')}
+function endEdit(){gEditing=false;gDraft=null;gForgot=null}
+const isOwn=c=>gEditing?gDraft.has(c):OWN_CODES.has(c),hasPh=c=>PHOTOS.has(c)&&!(gEditing&&gForgot.has(c));
+async function drawGame(){const i=gIdx,G=GAMES[i];if(!G)return;if(!G[1].includes(gSel))gSel=pickSel(i);
+ const sel=gSel,own=isOwn(sel),has=hasPh(sel),mine=G[1].filter(isOwn);
  $('gT').textContent=G[0];$('gY').textContent=`${G[2]} · ${G[1].length} variant${G[1].length>1?'s':''}`;
  $('gO').textContent=mine.length?`Owned · ${mine.length} of ${G[1].length}`:'Missing';$('gO').className=mine.length?'own':'';
  $('enG').setAttribute('aria-checked',ENG.has(sel)?'true':'false');$('enG').setAttribute('aria-label','English · '+sel);
- $('gVars').classList.toggle('edit',gEditing);$('gEdit').classList.toggle('on',gEditing);$('gEdit').textContent=gEditing?'Done':'Edit owned';
- clearTimeout(forgetT);$('gForget').classList.remove('on');$('gForget').textContent='Forget photo';$('gForget').disabled=!has;
- // Forget photo only while editing: it takes the place of Photo, so the row keeps its two buttons.
- $('gForget').hidden=!gEditing;$('gRow').classList.toggle('solo',!gEditing);
- $('gVars').innerHTML=G[1].map(c=>{const o=OWN_CODES.has(c),s=c.split('-').pop();
+ $('gVars').classList.toggle('edit',gEditing);$('gEdit').classList.toggle('on',gEditing);$('gEdit').textContent=gEditing?'Save':'Edit owned';
+ const f=$('gForget'),forgot=gEditing&&gForgot.has(sel);f.hidden=!gEditing;$('gRow').classList.toggle('solo',!gEditing);
+ f.textContent=forgot?'Keep photo':'Forget photo';f.disabled=!(PHOTOS.has(sel));
+ $('gVars').innerHTML=G[1].map(c=>{const o=isOwn(c),s=c.split('-').pop();
   return `<button class="vr${o?' on':''}${c===sel?' sel':''}" data-c="${c}">${FLAG(o)}<span class="cd">${c}</span>${ENG.has(c)?'<b class="en">EN</b>':''}<span>${esc(REGIONS[s]||s)}</span></button>`}).join('');
  const ph=$('gPh');ph.innerHTML=own||has?`<span class="cart"><img alt="${esc(G[0])} · ${sel}" src="${PLACE}"></span>`:'<span class="ghost"></span>';
  if(has){const r=await idb('readonly',s=>s.get(sel));if(r&&gIdx===i&&gSel===sel&&cur==='gv'){if(gURL)URL.revokeObjectURL(gURL);gURL=URL.createObjectURL(r.full);const im=ph.querySelector('img');if(im)im.src=gURL}}}
-$('gEdit').addEventListener('click',()=>{gEditing=!gEditing;drawGame()});
-// Tap a variant: show it (normal) or switch its ownership (Edit owned).
+// Edit owned → Save: apply the draft (ownership + forgotten photos).
+$('gEdit').addEventListener('click',async()=>{const G=GAMES[gIdx];if(!G)return;
+ if(!gEditing){gEditing=true;gDraft=new Set(G[1].filter(c=>OWN_CODES.has(c)));gForgot=new Set();return drawGame()}
+ const s=new Set(OWN_CODES),added=[];for(const c of G[1]){const o=gDraft.has(c);if(o&&!s.has(c))added.push(c);o?s.add(c):s.delete(c)}
+ setOwned([...s]);try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}addRecent(added);
+ for(const c of gForgot){await idb('readwrite',st=>st.delete(c));PHOTOS.delete(c);if(THUMB.has(c)){URL.revokeObjectURL(THUMB.get(c));THUMB.delete(c)}}
+ dirty=true;endEdit();drawGame()});
+// Tap a variant: show it; while editing also switch its tick.
 $('gVars').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b)return;const c=b.dataset.c;gSel=c;
- if(gEditing){const s=new Set(OWN_CODES),add=!s.has(c);add?s.add(c):s.delete(c);setOwned([...s]);try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}if(add)addRecent([c]);dirty=true}
- drawGame()});
+ if(gEditing)gDraft.has(c)?gDraft.delete(c):gDraft.add(c);drawGame()});
 $('enG').addEventListener('click',()=>{if(!gSel)return;setEnglish(gSel,!ENG.has(gSel));drawGame()});
-// Forget photo: removes the shown variant's photo from this phone (tap twice: the first tap asks).
-$('gForget').addEventListener('click',async()=>{const b=$('gForget'),c=gSel;if(!c||!PHOTOS.has(c))return;
- if(!b.classList.contains('on')){b.classList.add('on');b.textContent='Sure?';clearTimeout(forgetT);forgetT=setTimeout(()=>{b.classList.remove('on');b.textContent='Forget photo'},3000);return}
- await idb('readwrite',s=>s.delete(c));PHOTOS.delete(c);if(THUMB.has(c)){URL.revokeObjectURL(THUMB.get(c));THUMB.delete(c)}dirty=true;drawGame()});
+// Forget photo (while editing): marks the shown variant's photo to be deleted on Save; tap again (Keep photo) to undo.
+$('gForget').addEventListener('click',()=>{const c=gSel;if(!gEditing||!c||!PHOTOS.has(c))return;gForgot.has(c)?gForgot.delete(c):gForgot.add(c);drawGame()});
 // Ownership changed in the scanner: screens redraw when they are shown again.
 $('own').addEventListener('click',()=>{dirty=true});
 refresh();
