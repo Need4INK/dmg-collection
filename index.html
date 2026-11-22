@@ -841,19 +841,20 @@ function drawGrid(){const w=$('hWrap'),cv=$('hGrid'),W=w.clientWidth,H=w.clientH
  if(!GG||GG.cw!==cw||GG.ch!==ch){cv.style.width=cw+'px';cv.style.height=ch+'px';cv.width=cw*d;cv.height=ch*d}GG={cols,s,g,cw,ch};
  const c=cv.getContext('2d');c.setTransform(d,0,0,d,0,0);c.clearRect(0,0,cw,ch);
  for(let i=0;i<TOTAL;i++){const x=(i%cols)*(s+g),y=Math.floor(i/cols)*(s+g);c.fillStyle=OWN_GAMES.has(i)?'#9bbc0f':'#2e2b34';c.fillRect(x,y,s,s)}
- if(hHi>=0){const x=(hHi%cols)*(s+g),y=Math.floor(hHi/cols)*(s+g);c.fillStyle='#fff';c.fillRect(x,y,s,s)}}
-function gridAt(e){if(!GG)return -1;const r=$('hGrid').getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
- if(x<0||y<0||x>=GG.cw||y>=GG.ch)return -1;const st=GG.s+GG.g,i=Math.floor(y/st)*GG.cols+Math.min(GG.cols-1,Math.floor(x/st));return i<TOTAL?i:-1}
-// Magnifying bubble above the finger (5 squares across, the picked one ringed white) with the title above it.
-const LP=100,LN=5;
-function drawLoupe(i){const cv=$('hLoupe'),d=window.devicePixelRatio||1;if(cv.width!==LP*d){cv.width=cv.height=LP*d}
- const c=cv.getContext('2d');c.setTransform(d,0,0,d,0,0);c.clearRect(0,0,LP,LP);c.save();c.beginPath();c.arc(LP/2,LP/2,LP/2,0,7);c.clip();
- const P=LP/LN,q=P*GG.s/(GG.s+GG.g),col=i%GG.cols,row=Math.floor(i/GG.cols);
- for(let dr=-3;dr<=3;dr++)for(let dc=-3;dc<=3;dc++){const cc=col+dc,k=(row+dr)*GG.cols+cc;if(cc<0||cc>=GG.cols||k<0||k>=TOTAL)continue;
-  const x=LP/2+dc*P-q/2,y=LP/2+dr*P-q/2;c.fillStyle=OWN_GAMES.has(k)?'#9bbc0f':'#2e2b34';c.fillRect(x,y,q,q);
-  if(!dr&&!dc){c.strokeStyle='#fff';c.lineWidth=3;c.strokeRect(x-1.5,y-1.5,q+3,q+3)}}
- c.restore()}
-function gridHi(i){if(i===hHi)return;hHi=i;drawGrid();const tip=$('hTip'),lp=$('hLoupe');if(i<0){tip.hidden=lp.hidden=true;return}
+}
+// Up to 28px outside the grid still picks the nearest square, so edge and corner squares are easy to reach.
+function gridAt(e){if(!GG)return -1;const r=$('hGrid').getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,M=28;
+ if(x<-M||y<-M||x>=GG.cw+M||y>=GG.ch+M)return -1;const st=GG.s+GG.g,rows=Math.ceil(TOTAL/GG.cols);
+ const col=Math.max(0,Math.min(GG.cols-1,Math.floor(x/st))),row=Math.max(0,Math.min(rows-1,Math.floor(y/st))),i=row*GG.cols+col;
+ return i<TOTAL?i:(y>=GG.ch?TOTAL-1:-1)}
+// Magnifying bubble above the finger: a plain zoom of the grid, the picked square in the middle (ringed white), the title above it.
+const LP=100,LN=5; // bubble size (px), squares across
+function drawLoupe(i){const cv=$('hLoupe'),src=$('hGrid'),d=window.devicePixelRatio||1;if(cv.width!==LP*d){cv.width=cv.height=LP*d}
+ const c=cv.getContext('2d');c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,cv.width,cv.height);c.imageSmoothingEnabled=false;
+ const st=GG.s+GG.g,z=LP/(LN*st),cx=(i%GG.cols)*st+GG.s/2,cy=Math.floor(i/GG.cols)*st+GG.s/2; // zoom factor; centre of the picked square
+ c.setTransform(d*z,0,0,d*z,d*(LP/2-cx*z),d*(LP/2-cy*z));c.drawImage(src,0,0,GG.cw,GG.ch);
+ c.lineWidth=1/z*2;c.strokeStyle='#fff';const h=GG.s/2+GG.g/2;c.strokeRect(cx-h,cy-h,2*h,2*h)}
+function gridHi(i){if(i===hHi)return;hHi=i;const tip=$('hTip'),lp=$('hLoupe');if(i<0){tip.hidden=lp.hidden=true;return}
  tip.textContent=GAMES[i][0];tip.hidden=lp.hidden=false;drawLoupe(i);
  const w=$('hWrap'),cv=$('hGrid'),wr=w.getBoundingClientRect(),cr=cv.getBoundingClientRect(),st=GG.s+GG.g;
  const sx=cr.left-wr.left+(i%GG.cols)*st+GG.s/2,sy=cr.top-wr.top+Math.floor(i/GG.cols)*st+GG.s/2,tw=tip.offsetWidth,th=tip.offsetHeight;
