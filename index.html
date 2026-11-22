@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>DMG db</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#18191c">
@@ -25,14 +25,15 @@
    COLOUR and TYPE: shell grey, screen green #9bbc0f/#0f380f, maroon accent; Jost headings/numbers, Inter body.
    LAYOUT: one calm column: title, screen with photo, controls, straightened result. */
 /* Always dark, whatever the phone's light/dark setting */
+:root{--W:100vw;--H:100vh;--st:env(safe-area-inset-top);--sb:env(safe-area-inset-bottom)}@supports (height:100dvh){:root{--H:100dvh}}
 :root,:root[data-theme=light],:root[data-theme=dark]{color-scheme:dark;--bg:#18191c;--ink:#e9e7e2;--soft:#a3a5a8;
 --screen:#0f380f;--lcd:#9bbc0f;--a:#9a2257;--card:#25272b;--line:#3b3e44}
 html{background:#18191c}
 *{box-sizing:border-box;min-width:0}
-body{margin:0;min-height:100vh;background:radial-gradient(120% 60% at 50% 0%,#26282d 0%,var(--bg) 70%) no-repeat,var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+body{margin:0;min-height:var(--H);background:radial-gradient(120% 60% at 50% 0%,#26282d 0%,var(--bg) 70%) no-repeat,var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
 main{max-width:640px;margin:0 auto;padding:8px 16px 8px}
 /* The whole group sits centred on the screen, clear of the status bar. */
-body{display:flex;flex-direction:column;justify-content:center;min-height:100vh;min-height:100dvh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}main{width:100%}
+body{display:flex;flex-direction:column;justify-content:center;min-height:var(--H);padding:var(--st) 0 var(--sb)}main{width:100%}
 
 .screen{background:var(--screen);position:absolute;left:13.2%;top:8.3cqw;width:73.6%;height:67cqw;display:grid;place-items:center;overflow:hidden}
 #view{display:none;touch-action:none;position:absolute;inset:0;width:100%;height:100%}
@@ -110,9 +111,9 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 /* ---------- Collection: Home cover, Catalog, Game (one screen shown at a time) ---------- */
 body{display:block}
 .scr{display:none}
-#scan.on{display:flex;flex-direction:column;justify-content:flex-start;min-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+#scan.on{display:flex;flex-direction:column;justify-content:flex-start;min-height:calc(var(--H) - var(--st) - var(--sb))}
 #scan main{padding:41px 20px 8px} /* lens sits exactly where the cover's grey banner sits, same corners */
-.app.on{display:flex;flex-direction:column;gap:14px;height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));max-width:640px;margin:0 auto;padding:14px 20px 16px;overflow:hidden;line-height:1.3}
+.app.on{display:flex;flex-direction:column;gap:14px;height:calc(var(--H) - var(--st) - var(--sb));max-width:640px;margin:0 auto;padding:14px 20px 16px;overflow:hidden;line-height:1.3}
 .app button{font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .banner{flex:none;background:#7c7482;border-radius:10px 10px 30px 10px;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 2px 0 rgba(0,0,0,.18)}
 /* Cover: the top band is kept only as a spacer (banner stays put); the banner carries the scanner lens's stripes at the same spot instead. */
@@ -163,7 +164,7 @@ body{display:block}
 .ghost{display:block;aspect-ratio:56/65;width:100%;border:1px dashed #4a4651;border-radius:4px 10px 4px 4px;background:#26232a}
 .dot{position:absolute;right:4px;bottom:4px;width:16px;height:16px;border-radius:50%;background:#9bbc0f;box-shadow:0 0 0 2px rgba(0,0,0,.35);display:grid;place-items:center;font:700 10px/1 Jost,system-ui,sans-serif;font-style:normal;color:#121114}
 .wide{flex:none;height:52px;border-radius:12px;border:0;background:#2a2730;color:#fff;font:700 15px Jost,system-ui,sans-serif;letter-spacing:2px;margin:auto 64px 0 0}
-.fab{position:fixed;z-index:5;right:max(20px,calc(50vw - 300px));bottom:calc(16px + env(safe-area-inset-bottom));width:52px;height:52px;padding:0;border-radius:50%;border:0;background:#ab2b64;color:#fff;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.5);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.fab{position:fixed;z-index:5;right:max(20px,calc(var(--W) / 2 - 300px));bottom:calc(16px + var(--sb));width:52px;height:52px;padding:0;border-radius:50%;border:0;background:#ab2b64;color:#fff;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.5);cursor:pointer;-webkit-tap-highlight-color:transparent}
 .fab .x{display:none}.fab.close .x{display:block}.fab.close .p{display:none}
 .back{flex:none;width:44px;height:44px;border-radius:50%;background:#1c1a20;border:0;color:#fff;display:grid;place-items:center;padding:0}
 .topband{flex:none;margin-top:2px}
@@ -246,13 +247,16 @@ body{display:block}
 .hc{display:flex;gap:8px}
 /* No page zoom: no pinch or double-tap zoom anywhere (the scanner photo has its own pinch zoom). */
 html,body{touch-action:pan-x pan-y}
-/* Portrait only: iPhone can't lock a web app's orientation, so a landscape phone gets a plain 'turn me upright' cover (Android uses the manifest lock). */
-#turn{display:none}
-@media (orientation:landscape) and (max-height:500px){#turn{display:flex;position:fixed;inset:0;z-index:1000;background:#18191c;align-items:center;justify-content:center;touch-action:none}}
+/* Portrait lock: a phone turned sideways (touch, shorter side under 600px) gets the whole page turned back by 90°, filling the screen.
+   html.rot = phone's top to the left (page turned -90°); html.rot.cw = top to the right (+90°). The page box takes the screen's swapped size. */
+html.rot,html.rot body{overflow:hidden}
+html.rot body{position:fixed;left:0;top:0;width:100vh;height:100vw;min-height:0;overflow-y:auto;transform-origin:0 0;transform:translateY(100vh) rotate(-90deg);
+ --W:100vh;--H:100vw;--st:env(safe-area-inset-left);--sb:env(safe-area-inset-right)}
+@supports (height:100dvh){html.rot body{width:100dvh;--W:100dvh;transform:translateY(100dvh) rotate(-90deg)}}
+html.rot.cw body{transform:translateX(100vw) rotate(90deg);--st:env(safe-area-inset-right);--sb:env(safe-area-inset-left)}
 </style>
 </head>
 <body>
-<div id="turn" aria-label="Turn the phone upright"><svg width="96" height="96" viewBox="0 0 96 96" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="32" y="14" width="32" height="56" rx="6" stroke="#7c7482" stroke-width="4"/><path d="M44 62h8" stroke="#7c7482" stroke-width="4"/><path d="M20 58a30 30 0 0 0 22 24" stroke="#ab2b64" stroke-width="4"/><path d="M34 78l8 4-3 8" stroke="#ab2b64" stroke-width="4"/></svg></div>
 <!-- Home cover -->
 <div class="scr app on" id="home">
   <div class="stripes topband" aria-hidden="true"><i></i><i></i></div>
@@ -656,7 +660,16 @@ function loupePos(px,py,R){const cw=VW(),ch=VH(),m=8;
  if(bad(lside))for(let i=0;i<4;i++)if(!bad(i)){lside=i;break}return P[lside];}
 
 // Touch: one finger on a corner moves the corner; one finger elsewhere moves the photo; two fingers zoom; double tap fits the cart.
-const local=e=>{const r=view.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top]};
+// ---- Portrait lock (see html.rot in the CSS): one place decides the turn; pagePt/pageRect turn screen coordinates back into page coordinates.
+let ROT=0; // 0 upright, -90 page turned left, 90 page turned right
+function setRot(){const w=innerWidth,h=innerHeight,touch=matchMedia('(pointer:coarse)').matches,on=touch&&w>h&&h<600;
+ let a=0;try{a=screen.orientation?screen.orientation.angle:(window.orientation||0)}catch(e){}a=((a%360)+360)%360;
+ ROT=on?(a===270?90:-90):0;document.documentElement.classList.toggle('rot',!!ROT);document.documentElement.classList.toggle('cw',ROT===90)}
+setRot();addEventListener('resize',setRot);addEventListener('orientationchange',()=>setTimeout(setRot,50));try{screen.orientation.addEventListener('change',setRot)}catch(e){}
+function pagePt(X,Y){if(!ROT)return [X,Y];return ROT<0?[innerHeight-Y,X]:[Y,innerWidth-X]}
+function pageRect(el){const r=el.getBoundingClientRect();if(!ROT)return r;const a=pagePt(r.left,r.top),b=pagePt(r.right,r.bottom),
+ left=Math.min(a[0],b[0]),top=Math.min(a[1],b[1]),width=Math.abs(a[0]-b[0]),height=Math.abs(a[1]-b[1]);return {left,top,width,height,right:left+width,bottom:top+height}}
+const local=e=>{const r=pageRect(view),p=pagePt(e.clientX,e.clientY);return [p[0]-r.left,p[1]-r.top]};
 const toSrc=c=>[(c[0]-vs.tx)/vs.s,(c[1]-vs.ty)/vs.s];
 function startPinch(){const [a,b]=[...pts.values()],mid=[(a[0]+b[0])/2,(a[1]+b[1])/2];pinch={d0:dist(a,b)||1,s0:vs.s,m:toSrc(mid)};pan=null}
 view.addEventListener('pointerdown',e=>{if(!src)return;e.preventDefault();view.setPointerCapture(e.pointerId);const c=local(e);pts.set(e.pointerId,c);
@@ -971,7 +984,7 @@ function drawGrid(){const w=$('hWrap'),cv=$('hGrid'),W=w.clientWidth,H=w.clientH
  for(let i=0;i<TOTAL;i++){const x=(i%cols)*(s+g),y=Math.floor(i/cols)*(s+g);c.fillStyle=OWN_GAMES.has(i)?'#9bbc0f':'#2e2b34';c.fillRect(x,y,s,s)}
 }
 // Up to 28px outside the grid still picks the nearest square, so edge and corner squares are easy to reach.
-function gridAt(e){if(!GG)return -1;const r=$('hGrid').getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,M=28;
+function gridAt(e){if(!GG)return -1;const r=pageRect($('hGrid')),p=pagePt(e.clientX,e.clientY),x=p[0]-r.left,y=p[1]-r.top,M=28;
  if(x<-M||y<-M||x>=GG.cw+M||y>=GG.ch+M)return -1;const st=GG.s+GG.g,rows=Math.ceil(TOTAL/GG.cols);
  const col=Math.max(0,Math.min(GG.cols-1,Math.floor(x/st))),row=Math.max(0,Math.min(rows-1,Math.floor(y/st))),i=row*GG.cols+col;
  return i<TOTAL?i:(y>=GG.ch?TOTAL-1:-1)}
@@ -988,7 +1001,7 @@ function drawLoupe(i){const cv=$('hLoupe'),src=$('hGrid'),d=window.devicePixelRa
  c.beginPath();c.roundRect(.75,.75,LW-1.5,LH-1.5,LR);c.lineWidth=1.5;c.strokeStyle='rgba(255,255,255,.28)';c.stroke()}
 function gridHi(i){if(i===hHi)return;hHi=i;const tip=$('hTip'),lp=$('hLoupe');if(i<0){tip.hidden=lp.hidden=true;return}
  tip.textContent=GAMES[i][0];tip.hidden=lp.hidden=false;drawLoupe(i);
- const w=$('hWrap'),cv=$('hGrid'),wr=w.getBoundingClientRect(),cr=cv.getBoundingClientRect(),st=GG.s+GG.g;
+ const w=$('hWrap'),cv=$('hGrid'),wr=pageRect(w),cr=pageRect(cv),st=GG.s+GG.g;
  const sx=cr.left-wr.left+(i%GG.cols)*st+GG.s/2,sy=cr.top-wr.top+Math.floor(i/GG.cols)*st+GG.s/2,tw=tip.offsetWidth,th=tip.offsetHeight;
  const minTop=8-wr.top+th+8; // keep bubble and title on screen
  let ly=sy-34-LH/2;if(ly-LH/2<minTop)ly=sy+34+LH/2+th+8; // above the finger; below it if there's no room
