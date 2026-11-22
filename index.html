@@ -567,7 +567,7 @@ const ENG=new Set((()=>{try{return JSON.parse(localStorage.getItem('dmgEnglish')
 const view=$('view'),ctx=view.getContext('2d');
 const MAXSRC=2000,MAXDET=360,OW=560,OH=650; // DMG cart is about 56 x 65 mm
 const MARGIN=.15; // corners may be dragged this far (share of the photo size) past the photo edge
-let userRot=false,reading=false,lastBlob=null,dl=null,lside=0,src=null,srcData=null,quad=null,rot=0,drag=-1,grab=[0,0],outURL=null;
+let userRot=false,codeRot=false,noRead=false,reading=false,lastBlob=null,dl=null,lside=0,src=null,srcData=null,quad=null,rot=0,drag=-1,grab=[0,0],outURL=null;
 // The selection window has a fixed size; the photo moves and zooms inside it (vs = view scale and offset in CSS px).
 const vs={s:1,tx:0,ty:0},pts=new Map();let pan=null,pinch=null,lastTap=0;
 
@@ -606,10 +606,10 @@ function runDetect(){status('Looking for the cart…');setTimeout(()=>{
  else{quad=inset();fitPhoto();status('Cart not found. Drag the 4 corners onto it.')}
  // Orientation: the DMG cart's notch is its top right. If it was spotted, use it;
  // otherwise assume the photo was taken upright: top of the photo = top of the cart.
- userRot=false;rot=q&&q.cut>=0?(q.cut+3)%4:0;if(!(q&&q.cut>=0))longUp();
+ userRot=codeRot=false;rot=q&&q.cut>=0?(q.cut+3)%4:0;if(!(q&&q.cut>=0))longUp();
  draw();render();},30);}
 // The cart is taller than wide: if the selection's longer side would come out horizontal, turn it a quarter (the code reader then fixes up/down).
-function longUp(){if(userRot||!quad)return;const Q=[0,1,2,3].map(i=>quad[(i+rot)%4]);
+function longUp(){if(userRot||codeRot||!quad)return;const Q=[0,1,2,3].map(i=>quad[(i+rot)%4]);
  if(dist(Q[0],Q[1])+dist(Q[3],Q[2])>dist(Q[0],Q[3])+dist(Q[1],Q[2]))rot=(rot+3)%4}
 const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 
@@ -681,7 +681,7 @@ for(const t of ['gesturestart','gesturechange'])view.addEventListener(t,e=>e.pre
 const oc=document.createElement('canvas');oc.width=OW;oc.height=OH;const octx=oc.getContext('2d');
 function render(){if(!quad)return;const Q=[0,1,2,3].map(i=>quad[(i+rot)%4]),img=octx.createImageData(OW,OH);
  warp(srcData,src.width,src.height,Q,OW,OH,img.data);octx.putImageData(img,0,0);
- oc.toBlob(b=>{if(!b)return;lastBlob=b;saveState('');imgBtn();if(outURL)URL.revokeObjectURL(outURL);outURL=URL.createObjectURL(b);$('outImg').src=outURL;scheduleRead();
+ oc.toBlob(b=>{if(!b)return;lastBlob=b;saveState('');imgBtn();if(outURL)URL.revokeObjectURL(outURL);outURL=URL.createObjectURL(b);$('outImg').src=outURL;if(noRead)noRead=false;else scheduleRead();
   $('outMeta').innerHTML=`<b>${OW}×${OH}</b> · ${Math.round(b.size/1024)} KB`;$('save').disabled=false;},'image/jpeg',.85);}
 
 $('auto').addEventListener('click',()=>src&&runDetect());
@@ -840,7 +840,7 @@ onmessage=e=>{const d=e.data;if(d.type==='src'){S={p:new Uint8ClampedArray(d.buf
  postMessage({id:d.id,r:r&&{code:r.code,known:!!r.known,orient:r.orient}})}`;
  ocrW=new Worker(URL.createObjectURL(new Blob([js],{type:'text/javascript'})));sentVer=-1}catch(e){ocrW=null}return ocrW}
 function readCode(){if(!quad||manual||!pending)return;if(reading)return;pending=false;reading=true;note('Reading the code…');
- const Q=[0,1,2,3].map(i=>quad[(i+rot)%4]),job=++ocrJob,wk=ocrWorker();
+ const jr=rot,Q=[0,1,2,3].map(i=>quad[(i+jr)%4]),job=++ocrJob,wk=ocrWorker();
  if(wk){wk.onmessage=e=>{if(e.data.id===job)done(e.data.r)};wk.onerror=()=>{ocrW=null;done(null,true)};
   if(sentVer!==srcVer){const buf=srcData.slice().buffer;wk.postMessage({type:'src',buf,w:src.width,h:src.height},[buf]);sentVer=srcVer}
   wk.postMessage({type:'read',id:job,Q})}
@@ -851,8 +851,8 @@ function readCode(){if(!quad||manual||!pending)return;if(reading)return;pending=
   else if(err)note('Could not read the code','Type it in by hand');
   else if(!r)note('Code not found','Try a sharper, closer photo, or type it in');
   else{$('code').value=r.code;codeChanged();if(r.code.includes('?'))note('Partly read','Pick a match below or fill in the ? by hand');
-   // A real code read sideways or upside down shows which way is up: turn the picture to match.
-   if(r.known&&r.orient&&!userRot){rot=(rot+4-r.orient)%4;render()}}
+   // The code sits at the label's bottom left: once a real code is read, turn the picture so it's there and keep it (Rotate 90° overrides).
+   if(r.known&&!userRot){codeRot=true;const nr=(jr+4-(r.orient||0))%4;if(nr!==rot){rot=nr;noRead=true;render()}}}
   if(pending)scheduleRead()}}
 $('flip').addEventListener('click',()=>{userRot=true;rot=(rot+3)%4;render()});
 
