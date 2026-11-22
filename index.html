@@ -126,6 +126,7 @@ body{display:block}
 .cart{display:block;aspect-ratio:56/65;width:100%;background:#5d5a63;padding:2px}.cart img{display:block;width:100%;height:100%;object-fit:cover;background:#a09ca7}
 .ghost{display:block;aspect-ratio:56/65;width:100%;border:1px dashed #4a4651;border-radius:4px 10px 4px 4px;background:#26232a}
 .dot{position:absolute;right:5px;bottom:5px;width:12px;height:12px;border-radius:50%;background:#9bbc0f;box-shadow:0 0 0 2px rgba(0,0,0,.35)}
+.dot.n{width:18px;height:18px;right:3px;bottom:3px;display:grid;place-items:center;font:700 11px/1 Jost,system-ui,sans-serif;font-style:normal;color:#121114}
 .wide{flex:none;height:52px;border-radius:12px;border:0;background:#2a2730;color:#fff;font:700 15px Jost,system-ui,sans-serif;letter-spacing:2px;margin:auto 64px 0 0}
 .fab{position:fixed;z-index:5;right:max(20px,calc(50vw - 300px));bottom:calc(16px + env(safe-area-inset-bottom));width:52px;height:52px;padding:0;border-radius:50%;border:0;background:#ab2b64;color:#fff;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.5);cursor:pointer;-webkit-tap-highlight-color:transparent}
 .fab .x{display:none}.fab.close .x{display:block}.fab.close .p{display:none}
@@ -139,8 +140,8 @@ body{display:block}
 .search input::placeholder{color:#8d8895}
 .search input::-webkit-search-cancel-button{-webkit-appearance:none;display:none}
 .qx{flex:none;width:22px;height:22px;margin-right:-4px;padding:0;border:0;border-radius:50%;background:#4a4651;color:#fff;display:grid;place-items:center;cursor:pointer}.qx[hidden]{display:none}
-.seg{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;background:#1c1a20;border-radius:12px;padding:4px}
-.seg button{height:36px;border:0;border-radius:9px;background:transparent;color:#a9a4b0;font:600 13px Inter,system-ui,sans-serif;white-space:nowrap}.seg button.on{background:#3a3740;color:#fff}
+.seg{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:#1c1a20;border-radius:12px;padding:4px}
+.seg button{height:36px;border:0;border-radius:9px;background:transparent;color:#a9a4b0;padding:0 2px;font:600 12px Inter,system-ui,sans-serif;white-space:nowrap}.seg button.on{background:#3a3740;color:#fff}
 .tiles{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 8px;align-content:start;padding:0 0 84px;-webkit-mask-image:linear-gradient(#000 calc(100% - 48px),transparent);mask-image:linear-gradient(#000 calc(100% - 48px),transparent)}
 .tile{display:flex;flex-direction:column;gap:5px;background:none;border:0;padding:0;color:#e8e6ea;text-align:left;font:10px/1.25 Inter,system-ui,sans-serif}
 .tile .nm{height:25px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
@@ -214,6 +215,7 @@ body{display:block}
     <button data-f="all" class="on">All <span></span></button>
     <button data-f="own">Owned <span></span></button>
     <button data-f="miss">Missing <span></span></button>
+    <button data-f="multi">Multi <span></span></button>
   </div>
   <div class="tiles" id="cGrid"></div>
 </div>
@@ -766,7 +768,7 @@ const photoCode=i=>(OWN_GAMES.get(i)||[]).find(c=>PHOTOS.has(c));
 async function thumbURL(code){if(THUMB.has(code))return THUMB.get(code);const r=await idb('readonly',s=>s.get(code));if(!r)return PLACE;
  const u=URL.createObjectURL(r.thumb||r.full);THUMB.set(code,u);return u}
 function cartHTML(i,cls='',dot){const own=OWN_GAMES.has(i),pc=own&&photoCode(i);
- return own?`<span class="cw"><span class="cart"><img alt="" ${pc?`data-c="${pc}" src="${PLACE}"`:`src="${PLACE}"`}></span>${dot?'<i class="dot"></i>':''}</span>`:'<span class="ghost"></span>'}
+ return own?`<span class="cw"><span class="cart"><img alt="" ${pc?`data-c="${pc}" src="${PLACE}"`:`src="${PLACE}"`}></span>${dot?((n=>n>1?`<i class="dot n">${n}</i>`:'<i class="dot"></i>')((OWN_GAMES.get(i)||[]).length)):''}</span>`:'<span class="ghost"></span>'}
 // Photos load when their tile scrolls into view.
 const lazy=new IntersectionObserver(es=>{for(const e of es){if(!e.isIntersecting)continue;const im=e.target;lazy.unobserve(im);thumbURL(im.dataset.c).then(u=>{im.src=u})}},{rootMargin:'300px'});
 function loadThumbs(root){root.querySelectorAll('img[data-c]').forEach(im=>lazy.observe(im))}
@@ -815,11 +817,11 @@ function fillTile(t){const i=+t.dataset.g,own=OWN_GAMES.has(i);t.classList.toggl
 function drawCat(){if(!built)buildCat();const g=$('cGrid');
  if(dirty){g.querySelectorAll('.tile').forEach(fillTile);dirty=false;loadThumbs(g)}
  $('cCnt').innerHTML=`${OWN_GAMES.size}<small> / ${TOTAL}</small>`;
- const sp=$('cSeg').querySelectorAll('span');sp[0].textContent=TOTAL;sp[1].textContent=OWN_GAMES.size;sp[2].textContent=TOTAL-OWN_GAMES.size;applyFilter()}
+ const sp=$('cSeg').querySelectorAll('span');sp[0].textContent=TOTAL;sp[1].textContent=OWN_GAMES.size;sp[2].textContent=TOTAL-OWN_GAMES.size;sp[3].textContent=[...OWN_GAMES.values()].filter(v=>v.length>1).length;applyFilter()}
 function setFilter(f){filt=f;$('cSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.f===f));if(built)applyFilter()}
 function applyFilter(){const q=$('cQ').value.trim().toLowerCase();
  $('cGrid').querySelectorAll('.tile').forEach(t=>{const i=+t.dataset.g,own=OWN_GAMES.has(i),G=GAMES[i];
-  let ok=filt==='all'||(filt==='own')===own;if(ok&&q)ok=G[0].toLowerCase().includes(q)||G[1].some(c=>c.toLowerCase().includes(q));t.hidden=!ok})}
+  let ok=filt==='all'||(filt==='multi'?(OWN_GAMES.get(i)||[]).length>1:(filt==='own')===own);if(ok&&q)ok=G[0].toLowerCase().includes(q)||G[1].some(c=>c.toLowerCase().includes(q));t.hidden=!ok})}
 $('cSeg').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(b){setFilter(b.dataset.f);$('cGrid').scrollTop=0}});
 function setQuery(v){$('cQ').value=v;$('cQx').hidden=!v;applyFilter();$('cGrid').scrollTop=0}
 $('cQ').addEventListener('input',()=>setQuery($('cQ').value));
