@@ -143,6 +143,7 @@ body{display:block}
 .top{display:flex;align-items:center;gap:12px;flex:none}
 .back{flex:none;width:44px;height:44px;border-radius:50%;background:#1c1a20;border:0;color:#fff;display:grid;place-items:center;padding:0}
 .tt{display:flex;flex-direction:column;gap:4px;flex:1}.tt b{font:700 18px/1.2 Jost,system-ui,sans-serif;letter-spacing:2px}
+.tt.wide2{gap:6px}.ttr{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 .mini{display:flex;gap:3px;width:48px}.mini i{flex:1;height:3px;background:#ab2b64}.mini i+i{background:#1f2470}
 .cnt{font:700 16px Jost,system-ui,sans-serif}.cnt small{font-size:16px;color:#a9a4b0;font-weight:500}
 .search{flex:none;display:flex;align-items:center;gap:8px;height:44px;background:#1c1a20;border-radius:12px;padding:0 14px;color:#a9a4b0}
@@ -214,8 +215,7 @@ body{display:block}
 <div class="scr app" id="cat">
   <div class="top">
     <button class="back" data-back aria-label="Back"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 10H4M9 4l-6 6 6 6"/></svg></button>
-    <div class="tt"><div class="mini" aria-hidden="true"><i></i><i></i></div><b>CATALOG</b></div>
-    <span class="cnt" id="cCnt"></span>
+    <div class="tt wide2"><div class="stripes" aria-hidden="true"><i></i><i></i></div><div class="ttr"><b>CATALOG</b><span class="cnt" id="cCnt"></span></div></div>
   </div>
   <label class="search">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
