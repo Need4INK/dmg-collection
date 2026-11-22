@@ -440,7 +440,11 @@ const shareSave={save:async({filename,data})=>{const f=new File([data],filename,
  const a=document.createElement('a'),u=URL.createObjectURL(data);a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}};
 (async()=>{try{const framed=window.top!==window;for(let i=0;framed&&i<50&&!window.claude;i++)await new Promise(r=>setTimeout(r,100));dl=window.claude?await window.claude.use('downloads'):null}catch(e){dl=null}if(!dl)dl=shareSave;$('save').hidden=false;codeChanged()})();
 // Offline: cache the app files on the phone (ignored where service workers aren't allowed).
-try{if('serviceWorker' in navigator&&location.protocol==='https:'&&window.top===window)navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
+try{if('serviceWorker' in navigator&&location.protocol==='https:'&&window.top===window){
+ // When an update takes over, reload once so the new version shows straight away.
+ const had=!!navigator.serviceWorker.controller;let done=false;
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had&&!done){done=true;location.reload()}});
+ navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{})}}catch(e){}
 // Writes the cart details into the JPEG:
 //  EXIF  ImageDescription (caption, shown and searchable in iPhone Photos) + Software
 //  XMP   dc:title / dc:description / dc:subject keywords / xmp:CreatorTool + dmg:* app data (read back by the app later)
