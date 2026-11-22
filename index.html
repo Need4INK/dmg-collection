@@ -246,9 +246,13 @@ body{display:block}
 .hc{display:flex;gap:8px}
 /* No page zoom: no pinch or double-tap zoom anywhere (the scanner photo has its own pinch zoom). */
 html,body{touch-action:pan-x pan-y}
+/* Portrait only: iPhone can't lock a web app's orientation, so a landscape phone gets a plain 'turn me upright' cover (Android uses the manifest lock). */
+#turn{display:none}
+@media (orientation:landscape) and (max-height:500px){#turn{display:flex;position:fixed;inset:0;z-index:1000;background:#18191c;align-items:center;justify-content:center;touch-action:none}}
 </style>
 </head>
 <body>
+<div id="turn" aria-label="Turn the phone upright"><svg width="96" height="96" viewBox="0 0 96 96" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="32" y="14" width="32" height="56" rx="6" stroke="#7c7482" stroke-width="4"/><path d="M44 62h8" stroke="#7c7482" stroke-width="4"/><path d="M20 58a30 30 0 0 0 22 24" stroke="#ab2b64" stroke-width="4"/><path d="M34 78l8 4-3 8" stroke="#ab2b64" stroke-width="4"/></svg></div>
 <!-- Home cover -->
 <div class="scr app on" id="home">
   <div class="stripes topband" aria-hidden="true"><i></i><i></i></div>
