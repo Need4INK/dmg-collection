@@ -1121,7 +1121,7 @@ function drawHist(){const box=$('bList'),l=bkLog().reverse();if(!l.length){box.i
  const n=Math.max(1,Math.floor(box.clientHeight/34)),d=t=>{const x=new Date(t),z=n=>String(n).padStart(2,'0');return x.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+` · ${z(x.getHours())}:${z(x.getMinutes())}`};
  box.innerHTML=l.slice(0,n).map(r=>`<div class="hr"><b class="${r.k}">${r.k==='e'?'Export':'Import'}</b><span>${d(r.t)}</span><i>${r.c}</i><i>${r.p}</i></div>`).join('')}
 function bkStamp(){return ''} // idle: blank (the History card shows past exports/imports)
-function bkShow(carts,photos,size,sub){$('bN').innerHTML=`${carts}<small> carts</small>`;$('bP').textContent=`${photos} PHOTOS`+(size?` · ${MB(size)}`:'');$('bT').textContent=sub}
+function bkShow(carts,photos,size,sub){$('bN').innerHTML=`${carts}<small> cart${carts===1?'':'s'}</small>`;$('bP').textContent=`${photos} PHOTO${photos===1?'':'S'}`+(size?` · ${MB(size)}`:'');$('bT').textContent=sub}
 function bkBtns(ask,off){$('bIn').textContent=ask?'Cancel':'Import';$('bEx').textContent=ask?'Replace':'Export';$('bIn').disabled=!!off;$('bEx').disabled=!!off}
 // Opening the screen prepares the file at once, so Export can hand it straight to the share sheet (Save to Files).
 async function drawBackup(msg){if(bkBusy)return;const job=++bkJob;bkPend=null;bkZip=null;bkBtns(false);$('bEx').disabled=true;
@@ -1153,7 +1153,7 @@ async function bkRestore(){const {z,col,photos}=bkPend;bkPend=null;bkBusy=true;b
   setOwned(col.owned);ENG.clear();(Array.isArray(col.english)?col.english:[]).forEach(c=>ENG.add(c));
   try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]));localStorage.setItem('dmgRecent',JSON.stringify(Array.isArray(col.recent)?col.recent.slice(-60):[]));localStorage.setItem('dmgEnglish',JSON.stringify([...ENG]))}catch(e){}
  }catch(e){}
- bkAdd('i',OWN_CODES.size,n);dirty=true;bkBusy=false;if(cur==='bk'){drawHist();drawBackup(`Imported ✓ · ${n} photos`)}}
+ bkAdd('i',OWN_CODES.size,n);dirty=true;bkBusy=false;if(cur==='bk'){drawHist();drawBackup(`Imported ✓ · ${n} photo${n===1?'':'s'}`)}}
 refresh();tipCheck();
 }
 </script>
