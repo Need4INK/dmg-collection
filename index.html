@@ -209,6 +209,10 @@ body{display:block}
 .gtx .sw{align-self:flex-start;margin-top:4px}
 .vr.sel{background:#26232a;margin:0 -14px;padding:0 14px;width:calc(100% + 28px)}
 .vr .en{font:700 10px Jost,system-ui,sans-serif;letter-spacing:1px;color:#121114;background:#9bbc0f;border-radius:4px;padding:2px 5px}
+/* First run: speech bubble under the save icon, over the ring row (nothing moves). Tap it or the icon to dismiss for good. */
+.tip1{position:absolute;right:0;top:calc(6.5cqw + 48px);z-index:3;max-width:132px;padding:7px 10px;border:0;border-radius:12px;background:var(--lcd);color:var(--screen);font:500 13px/1.35 Inter,system-ui,sans-serif;text-align:left;box-shadow:0 2px 0 #306230}
+.tip1::before{content:"";position:absolute;top:-7px;right:calc(7.75cqw - 4.5px);border:7px solid transparent;border-top:0;border-bottom-color:var(--lcd)}
+.tip1[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -219,6 +223,7 @@ body{display:block}
     <div class="bband brow" aria-hidden="true"><i class="bst"></i><span class="bcap">GAME BOY COLLECTION</span></div>
     <i class="bband bst brs" aria-hidden="true"></i>
     <button class="bkb" id="toBk" aria-label="Backup"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 4a1 1 0 0 1 1-1h11.5L19 6.5V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M7 3v5h7V3M6.5 19v-6h9v6"/></svg></button>
+    <button class="tip1" id="tip1" hidden>Back up or restore your collection here</button>
     <div class="bnr">
       <div class="ring" id="hRing"><span id="hPct">0%</span></div>
       <div class="btx">
@@ -857,14 +862,17 @@ $('fab').addEventListener('click',()=>{if(cur==='scan')return back();const c=cur
  if(c){preset=c;$('code').value=c;manual=true;codeChanged()}});
 document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',back));
 $('toCat').addEventListener('click',()=>go('cat'));
-$('toBk').addEventListener('click',()=>go('bk'));
+function tipSeen(){try{return !!localStorage.getItem('dmgTip')}catch(e){return true}}
+function tipDone(){try{localStorage.setItem('dmgTip','1')}catch(e){}$('tip1').hidden=true}
+$('tip1').addEventListener('click',tipDone);
+$('toBk').addEventListener('click',()=>{tipDone();go('bk')});
 $('hAll').addEventListener('click',()=>{setFilter('own');go('cat')});
 function refresh(){if(cur==='home')drawHome();else if(cur==='cat')drawCat();else if(cur==='gv')drawGame();else if(cur==='bk')drawBackup()}
 
 // ---- Home cover ----
 function drawHome(){const own=OWN_GAMES.size,p=TOTAL?Math.round(own/TOTAL*100):0;
  $('hRing').style.setProperty('--p',TOTAL?own/TOTAL*100:0);$('hPct').textContent=p+'%';$('hOwn').textContent=own;$('hTot').textContent=TOTAL;
- $('hSub').textContent=`${OWN_CODES.size} carts · ${TOTAL-own} to go`;drawGrid();
+ $('hSub').textContent=`${OWN_CODES.size} carts · ${TOTAL-own} to go`;$('tip1').hidden=!!(OWN_CODES.size||tipSeen());drawGrid();
  const l=recentList().filter(r=>OWN_CODES.has(r.c)).slice(-4).reverse(),box=$('hRecent');let h='';
  for(let k=0;k<4;k++){const r=l[k];if(!r){h+='<span class="rc"><span class="ghost"></span><span></span></span>';continue}const i=gameIndex(r.c);
   h+=`<button class="rc" data-g="${i}"><span class="cw"><span class="cart"><img alt="" src="${PLACE}" ${PHOTOS.has(r.c)?`data-c="${r.c}"`:''}></span></span><span>${esc(r.c)}</span></button>`}
