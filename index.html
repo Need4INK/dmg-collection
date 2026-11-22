@@ -157,6 +157,18 @@ body{display:block}
 .two{flex:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:auto 64px 0 0}
 .two button{height:52px;border-radius:12px;border:0;background:#2a2730;color:#fff;font:600 14px Inter,system-ui,sans-serif}
 .two button.on{background:#ab2b64}
+.two.three{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.two.three button{font-size:13px;padding:0 4px}
+.two button:disabled{opacity:.4;cursor:default}
+/* English-language switch (scanner: right of "Label code"; game page: right of the photo) */
+.cbh{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.sw{flex:none;display:inline-flex;align-items:center;gap:8px;background:none;border:0;padding:0;margin:0;color:#a9a4b0;font:600 13px Inter,system-ui,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sw i{position:relative;width:42px;height:24px;border-radius:12px;background:#3a3740;transition:background .15s}
+.sw i::after{content:'';position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#cfcbd4;transition:transform .15s}
+.sw[aria-checked=true]{color:#e8e6ea}.sw[aria-checked=true] i{background:#9bbc0f}.sw[aria-checked=true] i::after{transform:translateX(18px);background:#fff}
+.sw:disabled{opacity:.35;cursor:default}
+.gtx .sw{align-self:flex-start;margin-top:4px}
+.vr.sel{background:#26232a;margin:0 -14px;padding:0 14px;width:calc(100% + 28px)}
+.vr .en{font:700 10px Jost,system-ui,sans-serif;letter-spacing:1px;color:#121114;background:#9bbc0f;border-radius:4px;padding:2px 5px}
 </style>
 </head>
 <body>
@@ -211,10 +223,10 @@ body{display:block}
   </div>
   <div class="ghead">
     <div class="gph" id="gPh"></div>
-    <div class="gtx"><b id="gT"></b><span id="gY"></span><span class="own" id="gO"></span></div>
+    <div class="gtx"><b id="gT"></b><span id="gY"></span><span class="own" id="gO"></span><button class="sw" id="enG" role="switch" aria-checked="false">English<i></i></button></div>
   </div>
   <div class="card vars" id="gVars"></div>
-  <div class="two"><button id="gPhoto">Photo</button><button id="gEdit">Edit owned</button></div>
+  <div class="two three"><button id="gPhoto">Photo</button><button id="gForget">Forget photo</button><button id="gEdit">Edit owned</button></div>
 </div>
 
 <button class="fab" id="fab" aria-label="Scan a cart">
@@ -261,7 +273,7 @@ body{display:block}
     </div>
   </div>
   <div class="codebox" id="codeBox">
-    <label for="code">Label code</label>
+    <div class="cbh"><label for="code">Label code</label><button class="sw" id="enS" role="switch" aria-checked="false" disabled>English<i></i></button></div>
     <div class="coderow"><input id="code" placeholder="DMG-…" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
     <div class="game" id="game"><b class="ph"><span class="flag dim" aria-hidden="true"></span>No game yet</b><div class="sm">Shown once the label code is read</div></div>
     <div class="sugg" id="sugg" hidden></div>
@@ -453,6 +465,8 @@ const OCR=makeOCR();
 // OCR END
 
 const $=id=>document.getElementById(id);
+// "English" switch: this copy of the game (exact code) has English language. Kept on this phone (localStorage dmgEnglish).
+const ENG=new Set((()=>{try{return JSON.parse(localStorage.getItem('dmgEnglish')||'[]')}catch(e){return []}})());
 const view=$('view'),ctx=view.getContext('2d');
 const MAXSRC=2000,MAXDET=360,OW=560,OH=650; // DMG cart is about 56 x 65 mm
 const MARGIN=.15; // corners may be dragged this far (share of the photo size) past the photo edge
@@ -653,7 +667,10 @@ function codeChanged(){saveState('');ownAsk=null;const v=$('code').value.trim().
  $('saveMsg').textContent=dl?fileName():'Saving unavailable here'}
 $('code').addEventListener('input',codeChanged);
 // Add / remove the current code (exact regional variant) to the collection on this phone.
-function ownBtn(v){const b=$('own'),ok=BY_CODE.has(v);b.disabled=!ok;b.textContent=ok&&OWN_CODES.has(v)?'Remove from collection':'Add to collection'}
+function ownBtn(v){const b=$('own'),ok=BY_CODE.has(v);b.disabled=!ok;b.textContent=ok&&OWN_CODES.has(v)?'Remove from collection':'Add to collection';
+ const e=$('enS');e.disabled=!ok;e.setAttribute('aria-checked',ok&&ENG.has(v)?'true':'false')}
+function setEnglish(c,on){on?ENG.add(c):ENG.delete(c);try{localStorage.setItem('dmgEnglish',JSON.stringify([...ENG]))}catch(e){}}
+$('enS').addEventListener('click',()=>{const v=$('code').value.trim().toUpperCase();if(!BY_CODE.has(v))return;setEnglish(v,!ENG.has(v));ownBtn(v)});
 function applyOwn(v,add,drop=[]){const s=new Set(OWN_CODES);drop.forEach(c=>s.delete(c));add?s.add(v):s.delete(v);setOwned([...s]);
  try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}
  if(add){addRecent([v]);if(lastBlob)keepPhoto(v,lastBlob,true)} // the cart's photo goes into the collection with it
@@ -752,7 +769,12 @@ const lazy=new IntersectionObserver(es=>{for(const e of es){if(!e.isIntersecting
 function loadThumbs(root){root.querySelectorAll('img[data-c]').forEach(im=>lazy.observe(im))}
 
 // ---- navigation: one screen at a time; the round button opens the scanner (+) and closes it (×) ----
-function go(id,push=true){if(id===cur)return refresh();if(push)stack.push(cur);if(cur==='scan')preset=null;cur=id;
+// Leaving the scanner empties it: next time it opens blank, like the first time.
+function clearScan(){src=null;srcData=null;quad=null;rot=0;lastBlob=null;manual=false;ocrJob++;srcVer++;reading=false;pending=false;clearTimeout(rcT);ownAsk=null;
+ view.style.display='none';$('empty').style.display='';for(const id of ['auto','reset','flip','save'])$(id).disabled=true;
+ if(outURL){URL.revokeObjectURL(outURL);outURL=null}$('outImg').src=PLACE;$('outMeta').innerHTML=`<b>${OW}×${OH}</b> · –`;
+ $('code').value='';codeChanged();status('')}
+function go(id,push=true){if(id===cur)return refresh();if(push)stack.push(cur);if(cur==='scan'){preset=null;clearScan()}cur=id;
  for(const s of document.querySelectorAll('.scr'))s.classList.toggle('on',s.id===id);
  const f=$('fab'),sc=id==='scan';f.classList.toggle('close',sc);f.setAttribute('aria-label',sc?'Close scanner':'Scan a cart');
  if(sc)layout();refresh()}
@@ -799,21 +821,33 @@ $('cQ').addEventListener('keydown',e=>{if(e.key==='Enter')$('cQ').blur()});
 $('cGrid').addEventListener('click',e=>{const t=e.target.closest('[data-g]');if(t)openGame(+t.dataset.g)});
 
 // ---- Game page: photo, variants, ownership ----
-function openGame(i){gIdx=i;gEditing=false;go('gv')}
-let gURL=null;
-async function drawGame(){const i=gIdx,G=GAMES[i];if(!G)return;const mine=OWN_GAMES.get(i)||[];
+// gSel = the variant shown on the page: its photo, its English switch, and what "Photo" / "Forget photo" act on.
+// Each variant (exact code) keeps its own photo; tap a variant row to show it.
+let gSel=null,gURL=null,forgetT=0;
+function openGame(i){gIdx=i;gEditing=false;const mine=OWN_GAMES.get(i)||[];gSel=photoCode(i)||mine[0]||GAMES[i][1][0];go('gv')}
+async function drawGame(){const i=gIdx,G=GAMES[i];if(!G)return;const mine=OWN_GAMES.get(i)||[];if(!G[1].includes(gSel))gSel=photoCode(i)||mine[0]||G[1][0];
+ const sel=gSel,own=OWN_CODES.has(sel),has=PHOTOS.has(sel);
  $('gT').textContent=G[0];$('gY').textContent=`${G[2]} · ${G[1].length} variant${G[1].length>1?'s':''}`;
  $('gO').textContent=mine.length?`Owned · ${mine.length} of ${G[1].length}`:'Missing';$('gO').className=mine.length?'own':'';
+ $('enG').setAttribute('aria-checked',ENG.has(sel)?'true':'false');$('enG').setAttribute('aria-label','English · '+sel);
  $('gVars').classList.toggle('edit',gEditing);$('gEdit').classList.toggle('on',gEditing);$('gEdit').textContent=gEditing?'Done':'Edit owned';
+ clearTimeout(forgetT);$('gForget').classList.remove('on');$('gForget').textContent='Forget photo';$('gForget').disabled=!has;
  $('gVars').innerHTML=G[1].map(c=>{const o=OWN_CODES.has(c),s=c.split('-').pop();
-  return `<button class="vr${o?' on':''}" data-c="${c}" ${gEditing?'':'tabindex="-1"'}>${FLAG(o)}<span class="cd">${c}</span><span>${esc(REGIONS[s]||s)}</span></button>`}).join('');
- const pc=photoCode(i),ph=$('gPh');ph.innerHTML=mine.length?`<span class="cart"><img alt="${esc(G[0])}" src="${PLACE}"></span>`:'<span class="ghost"></span>';
- if(pc){const r=await idb('readonly',s=>s.get(pc));if(r&&gIdx===i&&cur==='gv'){if(gURL)URL.revokeObjectURL(gURL);gURL=URL.createObjectURL(r.full);const im=ph.querySelector('img');if(im)im.src=gURL}}}
+  return `<button class="vr${o?' on':''}${c===sel?' sel':''}" data-c="${c}">${FLAG(o)}<span class="cd">${c}</span>${ENG.has(c)?'<b class="en">EN</b>':''}<span>${esc(REGIONS[s]||s)}</span></button>`}).join('');
+ const ph=$('gPh');ph.innerHTML=own||has?`<span class="cart"><img alt="${esc(G[0])} · ${sel}" src="${PLACE}"></span>`:'<span class="ghost"></span>';
+ if(has){const r=await idb('readonly',s=>s.get(sel));if(r&&gIdx===i&&gSel===sel&&cur==='gv'){if(gURL)URL.revokeObjectURL(gURL);gURL=URL.createObjectURL(r.full);const im=ph.querySelector('img');if(im)im.src=gURL}}}
 $('gEdit').addEventListener('click',()=>{gEditing=!gEditing;drawGame()});
-$('gVars').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b||!gEditing)return;const c=b.dataset.c,s=new Set(OWN_CODES),add=!s.has(c);
- add?s.add(c):s.delete(c);setOwned([...s]);try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}if(add)addRecent([c]);dirty=true;drawGame()});
-// Photo: opens the photo picker in the scanner with this game's code filled in (owned variant first).
-$('gPhoto').addEventListener('click',()=>{const G=GAMES[gIdx];if(!G)return;preset=(OWN_GAMES.get(gIdx)||[])[0]||G[1][0];go('scan');preset=preset||null;$('file').click()});
+// Tap a variant: show it (normal) or switch its ownership (Edit owned).
+$('gVars').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b)return;const c=b.dataset.c;gSel=c;
+ if(gEditing){const s=new Set(OWN_CODES),add=!s.has(c);add?s.add(c):s.delete(c);setOwned([...s]);try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}if(add)addRecent([c]);dirty=true}
+ drawGame()});
+$('enG').addEventListener('click',()=>{if(!gSel)return;setEnglish(gSel,!ENG.has(gSel));drawGame()});
+// Photo: opens the photo picker in the scanner with the shown variant's code filled in.
+$('gPhoto').addEventListener('click',()=>{if(!gSel)return;preset=gSel;go('scan');$('file').click()});
+// Forget photo: removes the shown variant's photo from this phone (tap twice: the first tap asks).
+$('gForget').addEventListener('click',async()=>{const b=$('gForget'),c=gSel;if(!c||!PHOTOS.has(c))return;
+ if(!b.classList.contains('on')){b.classList.add('on');b.textContent='Sure?';clearTimeout(forgetT);forgetT=setTimeout(()=>{b.classList.remove('on');b.textContent='Forget photo'},3000);return}
+ await idb('readwrite',s=>s.delete(c));PHOTOS.delete(c);if(THUMB.has(c)){URL.revokeObjectURL(THUMB.get(c));THUMB.delete(c)}dirty=true;drawGame()});
 // Ownership changed in the scanner: screens redraw when they are shown again.
 $('own').addEventListener('click',()=>{dirty=true});
 refresh();
