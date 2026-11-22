@@ -73,7 +73,7 @@ h2{font:600 20px/1.2 "Pixelify Sans",system-ui,sans-serif;margin:0 0 10px}
 .game{margin-top:8px;padding:6px 12px;border-radius:10px;background:var(--bg)}
 .game b{display:block;font-size:17px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .game .sm{font-size:14px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sugg{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.sugg .btn[data-act]{font:600 15px Inter,system-ui,sans-serif;flex:1}.sugg .btn{min-height:40px;font:600 15px ui-monospace,Menlo,monospace}
+.sugg{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.sugg .btn[data-act]{font:600 15px Inter,system-ui,sans-serif;flex:1;white-space:nowrap;padding:0 10px}.sugg .btn{min-height:40px;font:600 15px ui-monospace,Menlo,monospace}
 .coderow input:focus-visible{outline:3px solid var(--lcd);outline-offset:1px}
 @media(max-width:360px){.row.one .btn{font-size:14px}}
 input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
@@ -507,7 +507,7 @@ function showGame(v){const box=$('game'),sg=$('sugg');sg.hidden=true;sg.innerHTM
  const g=GAMES[i],sfx=v.split('-').pop(),reg=REGIONS[sfx],mine=OWN_GAMES.get(i);
  // Owned game: check mark before the title, and whether this exact regional variant is in the collection.
  const hint=!mine?'':OWN_CODES.has(v)?'this variant owned':'owned as '+mine.map(c=>c.split('-').pop()).join(', ');
- box.innerHTML=`<b>${FLAG(!!mine)}${esc(g[0])}</b><div class="sm">${[g[2],reg||sfx,exact?'':'this region variant is not in your list'].filter(Boolean).map(esc).join(' · ')}${hint?' · <span class="own">'+esc(hint)+'</span>':''}</div>`}
+ box.innerHTML=`<b>${FLAG(OWN_CODES.has(v))}${esc(g[0])}</b><div class="sm">${[g[2],reg||sfx,exact?'':'this region variant is not in your list'].filter(Boolean).map(esc).join(' · ')}${hint?' · <span class="own">'+esc(hint)+'</span>':''}</div>`}
 // Short note in the game card (reading progress, problems).
 const note=(t,d='')=>{$('game').innerHTML=`<b class="ph">${FLAG(0,1)}${esc(t)}</b><div class="sm">${esc(d)||'&nbsp;'}</div>`};
 $('sugg').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b)return;$('code').value=b.dataset.c;manual=true;codeChanged()});

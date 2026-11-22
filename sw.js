@@ -1,5 +1,5 @@
 // Keeps the app working offline. Bump VERSION on every release so phones pick up the new files.
-const VERSION = 'v18';
+const VERSION = 'v19';
 const FILES = ['./', 'index.html', 'data.js', 'manifest.webmanifest',
   'icons/dmgdb3-180.png', 'icons/dmgdb3-192.png', 'icons/dmgdb3-512.png',
   'icons/dmgdb3-maskable-192.png', 'icons/dmgdb3-maskable-512.png',
