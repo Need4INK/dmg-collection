@@ -120,8 +120,8 @@ body{display:block}
 #home .banner,#cat .banner,#gv .banner,#bk .banner{position:relative;container-type:inline-size;padding-top:calc(6.5% + 12px)}
 /* Catalog lens: same size as the cover's; back button and counter centred between the stripes and the search bar (same spot on Game and Backup). */
 #cat .bnr{align-items:flex-start;height:48px}#cat .btx,#bk .btx{margin-top:0}
-/* Home: counter at the same line as the Catalog counter (row top); label + carts line centred in the space left under it */
-#home .btx{align-self:stretch}#home .btx .lbl{margin-top:auto}#hSub{margin-bottom:auto}
+/* Home: text block at the row top, so the counter sits on the same line as the Catalog counter; label + carts line keep their spacing under it */
+#home .btx{align-self:flex-start}
 /* Game lens: same size and spot; back button where it is on the Catalog; title + year where the counter is */
 /* Game lens: back button at the Catalog's spot; the title gets two reserved lines right after it, centred on it.
    The photo rides up over the lens, 8px under the title, its left edge on the variant checkboxes (14px in).
