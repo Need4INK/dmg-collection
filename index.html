@@ -215,8 +215,8 @@ body{display:block}
 .tip1[hidden]{display:none}
 /* Backup history: newest first, only whole rows that fit (no scrolling) */
 #bHist{margin-top:12px}#bList{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column}
-.hr{flex:none;height:34px;display:flex;align-items:center;gap:10px;font-size:13px;color:#e9e7e2;border-top:1px solid #2a2730}.hr:first-child{border-top:0}
-.hr b{font-weight:500;width:54px}.hr b.e{color:#e86a9f}.hr b.i{color:var(--lcd)}.hr span{color:#a9a4b0;white-space:nowrap}.hr span:last-child{margin-left:auto}
+.hr{flex:none;height:34px;display:flex;align-items:center;gap:8px;font-size:13px;color:#e9e7e2;border-top:1px solid #2a2730}.hr:first-child{border-top:0}
+.hr b{font-weight:500;width:50px}.hr b.e{color:#e86a9f}.hr b.i{color:var(--lcd)}.hr span{color:#a9a4b0;white-space:nowrap}.hr span:last-child{margin-left:auto}
 .hnone{font-size:13px;color:#a9a4b0}
 #bT{display:block;height:19px;line-height:19px;white-space:nowrap} /* status line keeps its space when blank */
 /* Short screens (iPhone SE, small Android): tighten the scanner so it fits without scrolling; keep the game line clear of the x button */
@@ -241,6 +241,7 @@ body{display:block}
 .dot.pe.n{width:auto;min-width:16px;padding:0 15px 0 5px;border-radius:8px} /* count first, pencil on the right */
 .cust{align-self:flex-start;display:inline-flex;align-items:center;gap:3px;height:20px;padding:0 8px 0 2px;border-radius:10px;background:#e8e6ea;color:#141416;font:500 11px Inter,system-ui,sans-serif;margin-top:2px}.cust[hidden]{display:none}.cust .pn{width:16px;height:16px}
 .vr.rst{justify-content:center;font:500 14px Inter,system-ui,sans-serif;color:#e8e6ea}.vr.rst.arm{background:#ab2b64;color:#fff;margin:0 -14px;width:calc(100% + 28px)}
+@media(max-width:370px){.hr{font-size:12px}}
 </style>
 </head>
 <body>
@@ -1115,7 +1116,7 @@ const MB=b=>b<1048576?Math.max(1,Math.round(b/1024))+' KB':(b/1048576).toFixed(b
 function bkLog(){try{const l=JSON.parse(localStorage.getItem('dmgBkLog')||'[]');return Array.isArray(l)?l:[]}catch(e){return []}}
 function bkAdd(k,c,p){const l=bkLog();l.push({t:Date.now(),k,c,p});try{localStorage.setItem('dmgBkLog',JSON.stringify(l.slice(-50)))}catch(e){}}
 function drawHist(){const box=$('bList'),l=bkLog().reverse();if(!l.length){box.innerHTML='<p class="hnone">No exports or imports yet</p>';return}
- const n=Math.max(1,Math.floor(box.clientHeight/34)),d=t=>new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+ const n=Math.max(1,Math.floor(box.clientHeight/34)),d=t=>{const x=new Date(t),z=n=>String(n).padStart(2,'0');return `${z(x.getDate())}.${z(x.getMonth()+1)}.${String(x.getFullYear()).slice(2)} ${z(x.getHours())}:${z(x.getMinutes())}`};
  box.innerHTML=l.slice(0,n).map(r=>`<div class="hr"><b class="${r.k}">${r.k==='e'?'Export':'Import'}</b><span>${d(r.t)}</span><span>${r.c} carts · ${r.p} photos</span></div>`).join('')}
 function bkStamp(){return ''} // idle: blank (the History card shows past exports/imports)
 function bkShow(carts,photos,size,sub){$('bN').innerHTML=`${carts}<small> carts</small>`;$('bP').textContent=`${photos} PHOTOS`+(size?` · ${MB(size)}`:'');$('bT').textContent=sub}
