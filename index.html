@@ -79,6 +79,7 @@ h2{font:600 20px/1.2 "Pixelify Sans",system-ui,sans-serif;margin:0 0 10px}
 input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 .result{margin-top:10px}
 .game .ph{color:var(--soft);font-weight:600}
+.game .own{color:var(--lcd)}
 .out{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr);gap:16px;align-items:stretch}
 .side{display:flex;flex-direction:column;justify-content:space-between;gap:8px}
 .meta.one{margin:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
@@ -110,7 +111,7 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 </div>
 
 </div>
-<input type="file" id="file" accept="image/*">
+<input type="file" id="file" accept="image/*,.json,application/json">
 
 <div class="row one" id="tools">
   <label class="btn a" for="file">New photo</label>
@@ -332,7 +333,9 @@ const vs={s:1,tx:0,ty:0},pts=new Map();let pan=null,pinch=null,lastTap=0;
 function status(t,ok){$('led').classList.toggle('on',!!ok)} // the red LED shows whether a cart was found
 function inset(){const w=src.width,h=src.height,m=.1;return [[w*m,h*m],[w*(1-m),h*m],[w*(1-m),h*(1-m)],[w*m,h*(1-m)]]}
 
-function onPick(e){const inp=e.target,f=inp.files[0];inp.value='';if(!f)return;status('Loading photo…');
+function onPick(e){const inp=e.target,f=inp.files[0];inp.value='';if(!f)return;
+ if(/\.json$/i.test(f.name)||f.type==='application/json'){importOwned(f);return}
+ status('Loading photo…');
  const url=URL.createObjectURL(f),img=new Image();
  img.onload=()=>{const s=Math.min(1,MAXSRC/Math.max(img.naturalWidth,img.naturalHeight));
   src=document.createElement('canvas');src.width=Math.round(img.naturalWidth*s);src.height=Math.round(img.naturalHeight*s);
@@ -468,13 +471,23 @@ const BY_CODE=new Map(),BY_ID=new Map(),ALL_CODES=[];
 GAMES.forEach((g,i)=>{for(const c of g[1]){BY_CODE.set(c,i);ALL_CODES.push(c);const id=c.split('-')[1];BY_ID.set(id,i);if(id.length===4)BY_ID.set(id.slice(0,3),i)}});
 OCR.setCodes(ALL_CODES);
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// My collection: a list of owned codes, imported once from a .json file (New photo → Choose File)
+// and kept only on this phone. Nothing about anyone's collection is built into the app.
+let OWN_CODES=new Set(),OWN_GAMES=new Map();
+function setOwned(codes){OWN_CODES=new Set(codes.map(c=>String(c).trim().toUpperCase()).filter(Boolean));OWN_GAMES=new Map();
+ for(const c of OWN_CODES){const i=gameIndex(c);if(i===undefined)continue;if(!OWN_GAMES.has(i))OWN_GAMES.set(i,[]);OWN_GAMES.get(i).push(c)}}
+async function importOwned(f){try{const d=JSON.parse(await f.text()),codes=Array.isArray(d)?d:d.owned||d.codes;
+ if(!Array.isArray(codes))throw 0;setOwned(codes);try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}
+ note('Collection loaded',`${OWN_GAMES.size} games · ${OWN_CODES.size} carts`)}catch(e){note('Not a collection file','Pick the .json collection file')}}
 function showGame(v){const box=$('game'),sg=$('sugg');sg.hidden=true;sg.innerHTML='';
  if(v.includes('?')&&/^DMG-[A-Z0-9?]{2,4}-[A-Z?]{3}$/.test(v)){const re=new RegExp('^'+v.replace(/\?/g,'[A-Z0-9]')+'$'),m=ALL_CODES.filter(c=>re.test(c));
   if(m.length&&m.length<=8){sg.innerHTML=m.map(c=>`<button class="btn" data-c="${c}">${c}</button>`).join('');sg.hidden=false}}
  const i=gameIndex(v),exact=BY_CODE.has(v);
  if(i===undefined){box.innerHTML=CODE_RE.test(v)?'<b>Not in your list</b><div class="sm">No game uses this code. Check it against the label.</div>':v?'<b class="ph">No game yet</b><div class="sm">Format: DMG-XX-YYY or DMG-XXX-YYY</div>':'<b class="ph">No game yet</b><div class="sm">Shown once the label code is read</div>';return}
- const g=GAMES[i],reg=REGIONS[v.split('-').pop()];
- box.innerHTML=`<b>${esc(g[0])}</b><div class="sm">${[g[2],reg||v.split('-').pop(),exact?'':'this region variant is not in your list'].filter(Boolean).map(esc).join(' · ')}</div>`}
+ const g=GAMES[i],sfx=v.split('-').pop(),reg=REGIONS[sfx],mine=OWN_GAMES.get(i);
+ // Owned game: check mark before the title, and whether this exact regional variant is in the collection.
+ const hint=!mine?'':OWN_CODES.has(v)?'this variant owned':'owned as '+mine.map(c=>c.split('-').pop()).join(', ');
+ box.innerHTML=`<b>${mine?'<span class="own">✓</span> ':''}${esc(g[0])}</b><div class="sm">${[g[2],reg||sfx,exact?'':'this region variant is not in your list'].filter(Boolean).map(esc).join(' · ')}${hint?' · <span class="own">'+esc(hint)+'</span>':''}</div>`}
 // Short note in the game card (reading progress, problems).
 const note=(t,d='')=>{$('game').innerHTML=`<b class="ph">${esc(t)}</b><div class="sm">${esc(d)||'&nbsp;'}</div>`};
 $('sugg').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b)return;$('code').value=b.dataset.c;manual=true;codeChanged()});
@@ -491,6 +504,8 @@ const fileName=()=>{const v=$('code').value.trim().toUpperCase().replace(/[^A-Z0
 function codeChanged(){saveState('');const v=$('code').value.trim().toUpperCase();showGame(v);$('code').classList.toggle('bad',!!v&&!CODE_RE.test(v));
  $('saveMsg').textContent=dl?fileName():'Saving unavailable here'}
 $('code').addEventListener('input',codeChanged);
+// Load the collection saved on this phone (after the game lookups above exist).
+try{const s=localStorage.getItem('dmgOwned');if(s)setOwned(JSON.parse(s))}catch(e){}
 // Tapping anywhere outside the code field closes the keyboard.
 document.addEventListener('pointerdown',e=>{const a=document.activeElement;if(a&&a.tagName==='INPUT'&&e.target!==a)a.blur()});
 $('save').addEventListener('click',async()=>{if(!dl||!lastBlob)return;
