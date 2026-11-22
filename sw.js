@@ -1,7 +1,7 @@
 // Keeps the app working offline. Bump VERSION on every release so phones pick up the new files.
-const VERSION = 'v5';
+const VERSION = 'v6';
 const FILES = ['./', 'index.html', 'data.js', 'manifest.webmanifest',
-  'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png',
+  'icons/dmgdb-180.png', 'icons/dmgdb-192.png', 'icons/dmgdb-512.png',
   'fonts/jost-latin-500-normal.woff2', 'fonts/inter-latin-400-normal.woff2',
   'fonts/inter-latin-600-normal.woff2', 'fonts/pixelify-sans-latin-600-normal.woff2'];
 self.addEventListener('install', e => {
