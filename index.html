@@ -114,13 +114,7 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 /* ---------- Collection: Home cover, Catalog, Game (one screen shown at a time) ---------- */
 body{display:block}
 .scr{display:none}
-/* Scanner: the stripes band sits where it is on the other pages (16px down, 20px side margins); the caption overlaps it as it did on the lens */
-#scan .sband{flex:none;display:flex;align-items:center;gap:10px;width:calc(100% - 40px);max-width:600px;margin:16px auto 0;height:11px}
-#scan .sband i{flex:1;height:11px;background:linear-gradient(#ab2b64 0 4px,transparent 4px 7px,#1f2470 7px 11px)}
-#scan .sband i.rs2{flex:none;width:28px}
-#scan .sband span{font:500 16px/1 Jost,Futura,"Century Gothic",system-ui,sans-serif;color:#ccc6d2;letter-spacing:.02em;white-space:nowrap}
-#scan main{padding:14px 20px 8px}
-#scan.on{display:flex;flex-direction:column;justify-content:flex-start;min-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+#scan.on{display:flex;flex-direction:column;justify-content:center;min-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
 .app.on{display:flex;flex-direction:column;gap:14px;height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));max-width:640px;margin:0 auto;padding:14px 20px 16px;overflow:hidden;line-height:1.3}
 .app button{font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .banner{flex:none;background:#7c7482;border-radius:10px 10px 30px 10px;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 2px 0 rgba(0,0,0,.18)}
@@ -261,10 +255,11 @@ body{display:block}
 
 <!-- Cart scanner (opened with the + button) -->
 <div class="scr" id="scan">
-<div class="sband" aria-hidden="true"><i></i><span>DMG CART SCANNER</span><i class="rs2"></i></div>
 <main>
 
 <div class="lens">
+  <div class="band lrow" aria-hidden="true"><i class="st"></i><span class="cap">DMG CART SCANNER</span></div>
+  <i class="band st rs" aria-hidden="true"></i>
   <b class="led" id="led" aria-hidden="true"></b>
   <div class="screen" id="screen">
     <div class="empty" id="empty">
