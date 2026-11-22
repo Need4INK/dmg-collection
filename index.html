@@ -746,6 +746,8 @@ function buildGames(){const mine=[],list=[];
  for(const g of mine)at(out,g);GAMES.splice(0,GAMES.length,...out)}
 function saveMods(){try{localStorage.setItem('dmgMods',JSON.stringify(MODS))}catch(e){}}
 try{const m=JSON.parse(localStorage.getItem('dmgMods')||'null');if(okMods(m))MODS=m;else{const l=JSON.parse(localStorage.getItem('dmgGames')||'null');if(okGames(l)){MODS=modsFrom(l);saveMods()}}localStorage.removeItem('dmgGames')}catch(e){}
+// Edits identical to the built-in game (saved with only owned ticks changed) are not edits: drop them.
+try{let ch=false;for(const k in MODS.e){const b=BASE.find(x=>keyOf(x)===k);if(b&&JSON.stringify(b)===JSON.stringify(MODS.e[k])){delete MODS.e[k];ch=true}}if(ch)saveMods()}catch(e){}
 buildGames();
 const BY_CODE=new Map(),BY_ID=new Map(),ALL_CODES=[];let TOTAL=0;
 function indexGames(){BY_CODE.clear();BY_ID.clear();ALL_CODES.length=0;TOTAL=GAMES.length;
@@ -1071,7 +1073,8 @@ async function saveGame(){const old=gNew?null:GAMES[gIdx],t=$('gTi').value.trim(
  if(old)for(const c of old[1])if(!gRows.some(r=>r.o===c)){own.delete(c);await dropCode(c)}
  for(const r of gRows){const c=r.c.trim().toUpperCase();if(r.own){if(!own.has(c))added.push(c);own.add(c)}else own.delete(c)}
  for(const c of gForgot){await idb('readwrite',st=>st.delete(c));PHOTOS.delete(c);if(THUMB.has(c)){URL.revokeObjectURL(THUMB.get(c));THUMB.delete(c)}}
- const g=[t,codes,+y];let u=null;if(old&&old.k)MODS.e[old.k]=g;else if(old){const x=MODS.n.find(x=>x.u===old.u);if(x)x.g=g;u=old.u}else{u=Date.now();MODS.n.push({u,g})}
+ const g=[t,codes,+y];let u=null;if(old&&old.k){const b=BASE.find(x=>keyOf(x)===old.k); // unchanged from the built-in list (e.g. only owned ticks changed): not an edit
+  if(b&&JSON.stringify(b)===JSON.stringify(g))delete MODS.e[old.k];else MODS.e[old.k]=g}else if(old){const x=MODS.n.find(x=>x.u===old.u);if(x)x.g=g;u=old.u}else{u=Date.now();MODS.n.push({u,g})}
  commitGames([...own]);addRecent(added);const idx=GAMES.findIndex(x=>old&&old.k?x.k===old.k:x.u===u);
  const sel=gSel&&codes.includes(gSel)?gSel:null;gNew=false;endEdit();gIdx=idx;gSel=sel||pickSel(idx);drawGame()}
 // Reset: back to the built-in version; codes only my version had lose their ownership, English flag and photo.
