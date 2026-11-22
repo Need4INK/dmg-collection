@@ -789,10 +789,10 @@ function codeChanged(){saveState('');ownAsk=null;const v=$('code').value.trim().
  $('saveMsg').textContent=dl?fileName():'Saving unavailable here'}
 $('code').addEventListener('input',codeChanged);
 // Add / remove the current code (exact regional variant) to the collection on this phone.
-// Add image: keeps the current photo in the app as this code's photo (replaces an older one). Does not change ownership.
+// Add image: keeps the current photo in the app as this code's photo (replaces an older one). Does not change ownership; an owned cart moves to the front of Recently added.
 function imgBtn(){const b=$('addImg'),v=$('code').value.trim().toUpperCase();b.disabled=!(lastBlob&&BY_CODE.has(v));b.classList.remove('saved');b.dataset.s=''}
 $('addImg').addEventListener('click',async()=>{const b=$('addImg'),v=$('code').value.trim().toUpperCase();if(!lastBlob||!BY_CODE.has(v))return;
- b.disabled=true;await keepPhoto(v,lastBlob,true);b.disabled=false;b.classList.add('saved');b.dataset.s='added'});
+ b.disabled=true;await keepPhoto(v,lastBlob,true);if(OWN_CODES.has(v))addRecent([v]);b.disabled=false;b.classList.add('saved');b.dataset.s='added'});
 function ownBtn(v){imgBtn();const b=$('own'),ok=BY_CODE.has(v);b.disabled=!ok;b.textContent=ok&&OWN_CODES.has(v)?'Remove from collection':'Add to collection';
  const e=$('enS');e.disabled=!ok;e.setAttribute('aria-checked',ok&&ENG.has(v)?'true':'false')}
 function setEnglish(c,on){on?ENG.add(c):ENG.delete(c);markEdit();try{localStorage.setItem('dmgEnglish',JSON.stringify([...ENG]))}catch(e){}}
