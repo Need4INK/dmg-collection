@@ -121,7 +121,7 @@ body{display:block}
 /* Catalog lens: same size as the cover's; back button and counter centred between the stripes and the search bar (same spot on Game and Backup). */
 #cat .bnr{align-items:flex-start;height:48px}#cat .btx,#bk .btx{margin-top:0}
 /* Home: text block at the row top, so the counter sits on the same line as the Catalog counter; label + carts line keep their spacing under it */
-#home .btx{align-self:flex-start}
+#home .btx{align-self:flex-start}#home .big{height:38px;line-height:38px;white-space:nowrap}#hSub{white-space:nowrap}
 /* Game lens: same size and spot; back button where it is on the Catalog; title + year where the counter is */
 /* Game lens: back button at the Catalog's spot; the title gets two reserved lines right after it, centred on it.
    The photo rides up over the lens, 8px under the title, its left edge on the variant checkboxes (14px in).
@@ -864,7 +864,7 @@ function refresh(){if(cur==='home')drawHome();else if(cur==='cat')drawCat();else
 // ---- Home cover ----
 function drawHome(){const own=OWN_GAMES.size,p=TOTAL?Math.round(own/TOTAL*100):0;
  $('hRing').style.setProperty('--p',TOTAL?own/TOTAL*100:0);$('hPct').textContent=p+'%';$('hOwn').textContent=own;$('hTot').textContent=TOTAL;
- $('hSub').textContent=`${OWN_CODES.size} carts · ${TOTAL-own} to go`;drawGrid();
+ $('hSub').textContent=`${OWN_CODES.size} carts · ${TOTAL-own} to go`;fitHome();drawGrid();
  const l=recentList().filter(r=>OWN_CODES.has(r.c)).slice(-4).reverse(),box=$('hRecent');let h='';
  for(let k=0;k<4;k++){const r=l[k];if(!r){h+='<span class="rc"><span class="ghost"></span><span></span></span>';continue}const i=gameIndex(r.c);
   h+=`<button class="rc" data-g="${i}"><span class="cw"><span class="cart"><img alt="" src="${PLACE}" ${PHOTOS.has(r.c)?`data-c="${r.c}"`:''}></span></span><span>${esc(r.c)}</span></button>`}
@@ -912,6 +912,13 @@ hCv.addEventListener('pointercancel',()=>{hDown=false;gridHi(-1)});
 hCv.addEventListener('contextmenu',e=>e.preventDefault());
 hCv.addEventListener('touchstart',e=>e.preventDefault(),{passive:false}); // no iOS long-press selection or magnifier over the grid
 new ResizeObserver(()=>{if(cur==='home')drawGrid()}).observe($('hWrap'));
+// Home lens: the counter and the carts line are fitted to the width of "GAMES OWNED" (counter by size, carts line by letter spacing).
+function fitHome(){const l=$('home').querySelector('.lbl'),b=$('home').querySelector('.big'),sm=b.querySelector('small'),sub=$('hSub');
+ const tw=e=>{const r=document.createRange();r.selectNodeContents(e);return r.getBoundingClientRect().width}; // width of the text itself
+ const W=tw(l)-parseFloat(getComputedStyle(l).letterSpacing||0);if(!W)return;
+ for(let k=0,f=1;k<3;k++){b.style.fontSize=38*f+'px';sm.style.fontSize=18*f+'px';const w=tw(b);if(!w)return;f=Math.min(1,f*W/w)} // short counts (new collections) stay at full size
+ sub.style.letterSpacing='0px';const n=sub.textContent.length;if(n>1)sub.style.letterSpacing=Math.max(-1,Math.min(1,(W-tw(sub))/(n-1)))+'px'}
+document.fonts&&document.fonts.ready.then(()=>{if(cur==='home')fitHome()});
 
 // ---- Catalog ----
 let built=false;
