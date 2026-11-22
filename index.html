@@ -213,6 +213,11 @@ body{display:block}
 .tip1{position:absolute;right:calc(7.75cqw + 5.5px);top:calc(6.5cqw + 41.3px);z-index:3;width:151px;box-sizing:border-box;padding:7px 10px;border:0;border-radius:12px;background:var(--lcd);color:var(--screen);font:500 13px/1.35 Inter,system-ui,sans-serif;text-align:left;box-shadow:0 2px 0 #306230}
 .tip1::before{content:"";position:absolute;right:4px;top:-9px;width:22px;height:10px;background:var(--lcd);clip-path:polygon(0 100%,100% 0,75% 100%)} /* tail slanted up-right to the icon */
 .tip1[hidden]{display:none}
+/* Backup history: newest first, only whole rows that fit (no scrolling) */
+#bHist{margin-top:12px}#bList{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.hr{flex:none;height:34px;display:flex;align-items:center;gap:10px;font-size:13px;color:#e9e7e2;border-top:1px solid #2a2730}.hr:first-child{border-top:0}
+.hr b{font-weight:500;width:54px}.hr b.e{color:#e86a9f}.hr b.i{color:var(--lcd)}.hr span{color:#a9a4b0;white-space:nowrap}.hr span:last-child{margin-left:auto}
+.hnone{font-size:13px;color:#a9a4b0}
 </style>
 </head>
 <body>
@@ -290,6 +295,7 @@ body{display:block}
     <i class="bband bst brs" aria-hidden="true"></i>
     <div class="bnr"><div class="rslot"><button class="back" data-back aria-label="Back"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 10H4M9 4l-6 6 6 6"/></svg></button></div><div class="btx"><div class="big" id="bN"></div><b class="lbl" id="bP"></b><span id="bT"></span></div></div>
   </div>
+  <div class="card grow" id="bHist"><div class="ch"><span>History</span></div><div id="bList"></div></div>
   <div class="two" id="bRow"><button id="bIn">Import</button><button id="bEx" class="on">Export</button></div>
   <input type="file" id="bFile" accept=".zip,application/zip">
 </div>
@@ -702,7 +708,7 @@ let OWN_CODES=new Set(),OWN_GAMES=new Map();
 function setOwned(codes){OWN_CODES=new Set(codes.map(c=>String(c).trim().toUpperCase()).filter(Boolean));OWN_GAMES=new Map();
  for(const c of OWN_CODES){const i=gameIndex(c);if(i===undefined)continue;if(!OWN_GAMES.has(i))OWN_GAMES.set(i,[]);OWN_GAMES.get(i).push(c)}}
 async function importOwned(f){try{const d=JSON.parse(await f.text()),codes=Array.isArray(d)?d:d.owned||d.codes;
- if(!Array.isArray(codes))throw 0;setOwned(codes);try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}
+ if(!Array.isArray(codes))throw 0;setOwned(codes);try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}markEdit();
  dirty=true;
  note('Collection loaded',`${OWN_GAMES.size} games · ${OWN_CODES.size} carts`)}catch(e){note('Not a collection file','Pick the .json collection file')}}
 const FLAG=(on,dim)=>`<span class="flag${on?' on':''}${dim?' dim':''}" aria-hidden="true"></span>`;
@@ -738,10 +744,10 @@ $('addImg').addEventListener('click',async()=>{const b=$('addImg'),v=$('code').v
  b.disabled=true;await keepPhoto(v,lastBlob,true);b.disabled=false;b.classList.add('saved');b.dataset.s='added'});
 function ownBtn(v){imgBtn();const b=$('own'),ok=BY_CODE.has(v);b.disabled=!ok;b.textContent=ok&&OWN_CODES.has(v)?'Remove from collection':'Add to collection';
  const e=$('enS');e.disabled=!ok;e.setAttribute('aria-checked',ok&&ENG.has(v)?'true':'false')}
-function setEnglish(c,on){on?ENG.add(c):ENG.delete(c);try{localStorage.setItem('dmgEnglish',JSON.stringify([...ENG]))}catch(e){}}
+function setEnglish(c,on){on?ENG.add(c):ENG.delete(c);markEdit();try{localStorage.setItem('dmgEnglish',JSON.stringify([...ENG]))}catch(e){}}
 $('enS').addEventListener('click',()=>{const v=$('code').value.trim().toUpperCase();if(!BY_CODE.has(v))return;setEnglish(v,!ENG.has(v));ownBtn(v)});
 function applyOwn(v,add,drop=[]){const s=new Set(OWN_CODES);drop.forEach(c=>s.delete(c));add?s.add(v):s.delete(v);setOwned([...s]);
- try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}
+ try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}markEdit();
  if(add){addRecent([v]);if(lastBlob)keepPhoto(v,lastBlob,true)} // the cart's photo goes into the collection with it
  const sg=$('sugg');sg.hidden=true;sg.innerHTML='';showGame(v);ownBtn(v)}
 // Adding a region of a game you already own in another region asks first: replace the other copy, keep both, or cancel.
@@ -815,13 +821,13 @@ async function thumbOf(blob){const u=URL.createObjectURL(blob);try{const im=awai
  const c=document.createElement('canvas');c.width=TW;c.height=TH;c.getContext('2d').drawImage(im,0,0,TW,TH);
  return await new Promise(r=>c.toBlob(r,'image/jpeg',.8))}finally{URL.revokeObjectURL(u)}}
 async function keepPhoto(code,blob,tag){try{const full=tag&&quad?await tagJpeg(blob,photoMeta(code)).catch(()=>blob):blob,thumb=await thumbOf(full);
- await idb('readwrite',s=>s.put({full,thumb,tv:3,t:Date.now()},code));PHOTOS.add(code);
+ await idb('readwrite',s=>s.put({full,thumb,tv:3,t:Date.now()},code));PHOTOS.add(code);markEdit();
  if(THUMB.has(code)){URL.revokeObjectURL(THUMB.get(code));THUMB.delete(code)}dirty=true}catch(e){}}
 // Several photos saved by this app, picked at once: each one is filed under the code in its metadata and marked as owned.
 async function importPhotos(fs){let n=0,skip=0;const add=[];
  for(let k=0;k<fs.length;k++){note('Importing photos…',`${k+1} of ${fs.length}`);const f=fs[k],info=await scannedInfo(f);
   if(!info||!BY_CODE.has(info.code)){skip++;continue}await keepPhoto(info.code,f,false);add.push(info.code);n++}
- setOwned([...OWN_CODES,...add]);try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}addRecent(add);dirty=true;
+ setOwned([...OWN_CODES,...add]);try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}markEdit();addRecent(add);dirty=true;
  note(`Photos imported · ${n}`,skip?`${skip} skipped (no DMG code in the photo)`:`${OWN_GAMES.size} games · ${OWN_CODES.size} carts`)}
 // Recently added carts (newest last), kept on this phone.
 function recentList(){try{return JSON.parse(localStorage.getItem('dmgRecent')||'[]')}catch(e){return []}}
@@ -862,8 +868,13 @@ $('fab').addEventListener('click',()=>{if(cur==='scan')return back();const c=cur
  if(c){preset=c;$('code').value=c;manual=true;codeChanged()}});
 document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',back));
 $('toCat').addEventListener('click',()=>go('cat'));
-function tipSeen(){try{return !!localStorage.getItem('dmgTip')}catch(e){return true}}
-function tipDone(){try{localStorage.setItem('dmgTip','1')}catch(e){}$('tip1').hidden=true}
+// Backup bubble: on opening the app, when the collection is empty or the last edit is a week old with no export/import since. Gone after 10 s or a tap.
+function markEdit(){try{localStorage.setItem('dmgEditT',Date.now())}catch(e){}}
+let tipT=0;function tipDone(){clearTimeout(tipT);$('tip1').hidden=true}
+function tipCheck(){let need=!OWN_CODES.size;try{const e=+localStorage.getItem('dmgEditT')||0,b=Math.max(+localStorage.getItem('dmgBackupT')||0,...bkLog().map(r=>r.t));
+ if(e>b&&Date.now()-e>=6048e5)need=true}catch(x){}
+ if(!need)return;$('tip1').hidden=false;clearTimeout(tipT);tipT=setTimeout(tipDone,1e4)}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&cur==='home')tipCheck();else tipDone()});
 $('tip1').addEventListener('click',tipDone);
 $('toBk').addEventListener('click',()=>{tipDone();go('bk')});
 $('hAll').addEventListener('click',()=>{setFilter('own');go('cat')});
@@ -872,7 +883,7 @@ function refresh(){if(cur==='home')drawHome();else if(cur==='cat')drawCat();else
 // ---- Home cover ----
 function drawHome(){const own=OWN_GAMES.size,p=TOTAL?Math.round(own/TOTAL*100):0;
  $('hRing').style.setProperty('--p',TOTAL?own/TOTAL*100:0);$('hPct').textContent=p+'%';$('hOwn').textContent=own;$('hTot').textContent=TOTAL;
- $('hSub').textContent=`${OWN_CODES.size} carts · ${TOTAL-own} to go`;$('tip1').hidden=!!(OWN_CODES.size||tipSeen());drawGrid();
+ $('hSub').textContent=`${OWN_CODES.size} carts · ${TOTAL-own} to go`;drawGrid();
  const l=recentList().filter(r=>OWN_CODES.has(r.c)).slice(-4).reverse(),box=$('hRecent');let h='';
  for(let k=0;k<4;k++){const r=l[k];if(!r){h+='<span class="rc"><span class="ghost"></span><span></span></span>';continue}const i=gameIndex(r.c);
   h+=`<button class="rc" data-g="${i}"><span class="cw"><span class="cart"><img alt="" src="${PLACE}" ${PHOTOS.has(r.c)?`data-c="${r.c}"`:''}></span></span><span>${esc(r.c)}</span></button>`}
@@ -966,7 +977,7 @@ async function drawGame(){const i=gIdx,G=GAMES[i];if(!G)return;if(!G[1].includes
 $('gEdit').addEventListener('click',async()=>{const G=GAMES[gIdx];if(!G)return;
  if(!gEditing){gEditing=true;gDraft=new Set(G[1].filter(c=>OWN_CODES.has(c)));gForgot=new Set();return drawGame()}
  const s=new Set(OWN_CODES),added=[];for(const c of G[1]){const o=gDraft.has(c);if(o&&!s.has(c))added.push(c);o?s.add(c):s.delete(c)}
- setOwned([...s]);try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}addRecent(added);
+ setOwned([...s]);try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}markEdit();addRecent(added);
  for(const c of gForgot){await idb('readwrite',st=>st.delete(c));PHOTOS.delete(c);if(THUMB.has(c)){URL.revokeObjectURL(THUMB.get(c));THUMB.delete(c)}}
  dirty=true;endEdit();drawGame()});
 // Tap a variant: show it; while editing also switch its tick.
@@ -999,12 +1010,17 @@ async function entryBytes(x){if(x.m===0)return x.data; // re-zipped elsewhere: d
  if(x.m===8&&window.DecompressionStream)return new Uint8Array(await new Response(new Blob([x.data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());throw 0}
 let bkZip=null,bkPend=null,bkJob=0,bkBusy=false;
 const MB=b=>b<1048576?Math.max(1,Math.round(b/1024))+' KB':(b/1048576).toFixed(b<10485760?1:0)+' MB';
+function bkLog(){try{const l=JSON.parse(localStorage.getItem('dmgBkLog')||'[]');return Array.isArray(l)?l:[]}catch(e){return []}}
+function bkAdd(k,c,p){const l=bkLog();l.push({t:Date.now(),k,c,p});try{localStorage.setItem('dmgBkLog',JSON.stringify(l.slice(-50)))}catch(e){}}
+function drawHist(){const box=$('bList'),l=bkLog().reverse();if(!l.length){box.innerHTML='<p class="hnone">No exports or imports yet</p>';return}
+ const n=Math.max(1,Math.floor(box.clientHeight/34)),d=t=>new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+ box.innerHTML=l.slice(0,n).map(r=>`<div class="hr"><b class="${r.k}">${r.k==='e'?'Export':'Import'}</b><span>${d(r.t)}</span><span>${r.c} carts · ${r.p} photos</span></div>`).join('')}
 function bkStamp(){const t=+localStorage.getItem('dmgBackupT')||0;return t?'Last export '+new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'Not exported yet'}
 function bkShow(carts,photos,size,sub){$('bN').innerHTML=`${carts}<small> carts</small>`;$('bP').textContent=`${photos} PHOTOS`+(size?` · ${MB(size)}`:'');$('bT').textContent=sub}
 function bkBtns(ask,off){$('bIn').textContent=ask?'Cancel':'Import';$('bEx').textContent=ask?'Replace':'Export';$('bIn').disabled=!!off;$('bEx').disabled=!!off}
 // Opening the screen prepares the file at once, so Export can hand it straight to the share sheet (Save to Files).
 async function drawBackup(msg){if(bkBusy)return;const job=++bkJob;bkPend=null;bkZip=null;bkBtns(false);$('bEx').disabled=true;
- bkShow(OWN_CODES.size,PHOTOS.size,0,'Preparing…');
+ bkShow(OWN_CODES.size,PHOTOS.size,0,'Preparing…');drawHist();
  const keys=(await idb('readonly',s=>s.getAllKeys()))||[],recs=(await idb('readonly',s=>s.getAll()))||[],files=[],ph={};
  for(let k=0;k<keys.length;k++){if(job!==bkJob)return;const r=recs[k];if(!r||!r.full)continue;files.push({name:`photos/${keys[k]}.jpg`,data:new Uint8Array(await r.full.arrayBuffer())});ph[keys[k]]=r.t||0}
  if(job!==bkJob||cur!=='bk')return;
@@ -1014,7 +1030,7 @@ $('bEx').addEventListener('click',async()=>{if(bkPend)return bkRestore();if(!bkZ
  const name=`dmgdb-backup-${new Date().toISOString().slice(0,10)}.zip`,file=new File([bkZip],name,{type:'application/zip'});
  try{if(navigator.canShare&&navigator.canShare({files:[file]}))await navigator.share({files:[file]});
   else{const a=document.createElement('a'),u=URL.createObjectURL(file);a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
-  localStorage.setItem('dmgBackupT',Date.now());$('bT').textContent=bkStamp()}catch(e){}});
+  localStorage.setItem('dmgBackupT',Date.now());bkAdd('e',OWN_CODES.size,PHOTOS.size);$('bT').textContent=bkStamp();drawHist()}catch(e){}});
 $('bIn').addEventListener('click',()=>{if(bkPend)return drawBackup();$('bFile').click()});
 // Picking a backup shows what is in it and asks before replacing anything.
 $('bFile').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f||bkBusy)return;bkJob++;bkZip=null;
@@ -1031,8 +1047,8 @@ async function bkRestore(){const {z,col,photos}=bkPend;bkPend=null;bkBusy=true;b
   setOwned(col.owned);ENG.clear();(Array.isArray(col.english)?col.english:[]).forEach(c=>ENG.add(c));
   try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]));localStorage.setItem('dmgRecent',JSON.stringify(Array.isArray(col.recent)?col.recent.slice(-60):[]));localStorage.setItem('dmgEnglish',JSON.stringify([...ENG]))}catch(e){}
  }catch(e){}
- dirty=true;bkBusy=false;if(cur==='bk')drawBackup(`Imported ✓ · ${n} photos`)}
-refresh();
+ bkAdd('i',OWN_CODES.size,n);dirty=true;bkBusy=false;if(cur==='bk'){drawHist();drawBackup(`Imported ✓ · ${n} photos`)}}
+refresh();tipCheck();
 }
 </script>
 </body>
