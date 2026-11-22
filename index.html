@@ -218,6 +218,7 @@ body{display:block}
 .hr{flex:none;height:34px;display:flex;align-items:center;gap:10px;font-size:13px;color:#e9e7e2;border-top:1px solid #2a2730}.hr:first-child{border-top:0}
 .hr b{font-weight:500;width:54px}.hr b.e{color:#e86a9f}.hr b.i{color:var(--lcd)}.hr span{color:#a9a4b0;white-space:nowrap}.hr span:last-child{margin-left:auto}
 .hnone{font-size:13px;color:#a9a4b0}
+#bT{display:block;height:19px;line-height:19px;white-space:nowrap} /* status line keeps its space when blank */
 </style>
 </head>
 <body>
@@ -1015,7 +1016,7 @@ function bkAdd(k,c,p){const l=bkLog();l.push({t:Date.now(),k,c,p});try{localStor
 function drawHist(){const box=$('bList'),l=bkLog().reverse();if(!l.length){box.innerHTML='<p class="hnone">No exports or imports yet</p>';return}
  const n=Math.max(1,Math.floor(box.clientHeight/34)),d=t=>new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
  box.innerHTML=l.slice(0,n).map(r=>`<div class="hr"><b class="${r.k}">${r.k==='e'?'Export':'Import'}</b><span>${d(r.t)}</span><span>${r.c} carts · ${r.p} photos</span></div>`).join('')}
-function bkStamp(){const t=+localStorage.getItem('dmgBackupT')||0;return t?'Last export '+new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'Not exported yet'}
+function bkStamp(){return ''} // idle: blank (the History card shows past exports/imports)
 function bkShow(carts,photos,size,sub){$('bN').innerHTML=`${carts}<small> carts</small>`;$('bP').textContent=`${photos} PHOTOS`+(size?` · ${MB(size)}`:'');$('bT').textContent=sub}
 function bkBtns(ask,off){$('bIn').textContent=ask?'Cancel':'Import';$('bEx').textContent=ask?'Replace':'Export';$('bIn').disabled=!!off;$('bEx').disabled=!!off}
 // Opening the screen prepares the file at once, so Export can hand it straight to the share sheet (Save to Files).
