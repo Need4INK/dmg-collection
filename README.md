@@ -15,4 +15,4 @@ Your collection and cart photos stay on your phone only.
 2. Tap Share → **Add to Home Screen**.
 3. Open it once while online; after that it works in flight mode.
 
-Fonts (Jost, Inter, Pixelify Sans) are under the SIL Open Font License; see `fonts/`.
+Fonts (Jost, Inter) are under the SIL Open Font License; see `fonts/`.

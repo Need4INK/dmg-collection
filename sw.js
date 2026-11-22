@@ -1,11 +1,11 @@
 // Keeps the app working offline. Bump VERSION on every release so phones pick up the new files.
-const VERSION = 'v49';
+const VERSION = 'v50';
 const FILES = ['./', 'index.html', 'data.js', 'manifest.webmanifest',
   'icons/dmgdb3-180.png', 'icons/dmgdb3-192.png', 'icons/dmgdb3-512.png',
   'icons/dmgdb3-maskable-192.png', 'icons/dmgdb3-maskable-512.png',
   'fonts/jost-latin-500-normal.woff2', 'fonts/jost-latin-700-normal.woff2',
   'fonts/inter-latin-400-normal.woff2',
-  'fonts/inter-latin-600-normal.woff2', 'fonts/pixelify-sans-latin-600-normal.woff2'];
+  'fonts/inter-latin-600-normal.woff2'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES.map(f => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
