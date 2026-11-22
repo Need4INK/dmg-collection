@@ -120,8 +120,9 @@ body{display:block}
 .app button{font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .banner{flex:none;background:#7c7482;border-radius:10px 10px 30px 10px;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 2px 0 rgba(0,0,0,.18)}
 /* Cover: the top band is kept only as a spacer (banner stays put); the banner carries the scanner lens's stripes at the same spot instead. */
-#home .topband{visibility:hidden}
-#home .banner{position:relative;container-type:inline-size;padding-top:calc(6.5% + 12px)}
+#home .topband,#cat .topband{visibility:hidden}
+#home .banner,#cat .banner{position:relative;container-type:inline-size;padding-top:calc(6.5% + 12px)}
+.crow{display:flex;align-items:center;gap:14px;color:#1a181d}
 /* Same layout as the scanner lens (stripes + caption). cqw here = banner width minus its 32px side padding, hence the small px corrections. */
 .bband{position:absolute;top:calc(3cqw + .96px);height:calc(3.5cqw + 1.12px)}
 .bst{background:linear-gradient(#ab2b64 0 27%,transparent 27% 73.5%,#141a6a 73.5% 100%)}
@@ -230,15 +231,16 @@ body{display:block}
 <!-- Catalog: one tile per game, A → Z -->
 <div class="scr app" id="cat">
   <div class="stripes topband" aria-hidden="true"><i></i><i></i></div>
-  <div class="top">
-    <button class="back" data-back aria-label="Back"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 10H4M9 4l-6 6 6 6"/></svg></button>
-    <div class="tt"><div class="ttr"><b>CATALOG</b><span class="cnt" id="cCnt"></span></div></div>
-  </div>
+  <div class="banner">
+    <div class="bband brow" aria-hidden="true"><i class="bst"></i><span class="bcap">CATALOG</span></div>
+    <i class="bband bst brs" aria-hidden="true"></i>
+    <div class="crow"><button class="back" data-back aria-label="Back"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 10H4M9 4l-6 6 6 6"/></svg></button><div class="big" id="cCnt"></div></div>
   <label class="search">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
     <input id="cQ" type="search" placeholder="Search title or code" aria-label="Search title or code" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
     <button class="qx" id="cQx" type="button" aria-label="Clear search" hidden><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 2l8 8M10 2L2 10"/></svg></button>
   </label>
+  </div>
   <div class="seg" id="cSeg">
     <button data-f="all" class="on">All <span></span></button>
     <button data-f="own">Owned <span></span></button>
