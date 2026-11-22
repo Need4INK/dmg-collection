@@ -122,7 +122,12 @@ body{display:block}
 /* Cover: the top band is kept only as a spacer (banner stays put); the banner carries the scanner lens's stripes at the same spot instead. */
 #home .topband{visibility:hidden}
 #home .banner{position:relative;container-type:inline-size;padding-top:calc(6.5% + 12px)}
-.bst{position:absolute;top:calc(3cqw + .96px);height:calc(3.5cqw + 1.12px);left:3.8%;right:3.8%;background:linear-gradient(#ab2b64 0 27%,transparent 27% 73.5%,#141a6a 73.5% 100%)}
+/* Same layout as the scanner lens (stripes + caption). cqw here = banner width minus its 32px side padding, hence the small px corrections. */
+.bband{position:absolute;top:calc(3cqw + .96px);height:calc(3.5cqw + 1.12px)}
+.bst{background:linear-gradient(#ab2b64 0 27%,transparent 27% 73.5%,#141a6a 73.5% 100%)}
+.brow{left:3.8%;width:83%;display:flex;align-items:center;gap:calc(2.3cqw + .74px)}.brow .bst{flex:1;height:100%}
+.bcap{font:500 calc(4.43cqw + 1.42px)/1 Jost,Futura,"Century Gothic",system-ui,sans-serif;color:#ccc6d2;letter-spacing:.02em;white-space:nowrap}
+.brs{left:88.3%;width:7.9%}
 .stripes{display:flex;flex-direction:column;gap:3px}.stripes i{height:4px;background:#ab2b64}.stripes i+i{background:#1f2470}
 .bnr{display:flex;align-items:center;gap:16px}
 .ring{--p:0;flex:none;width:92px;height:92px;border-radius:50%;background:conic-gradient(#9bbc0f calc(var(--p)*1%),#3a3740 0);display:grid;place-items:center}
@@ -200,7 +205,8 @@ body{display:block}
 <div class="scr app on" id="home">
   <div class="stripes topband" aria-hidden="true"><i></i><i></i></div>
   <div class="banner">
-    <i class="bst" aria-hidden="true"></i>
+    <div class="bband brow" aria-hidden="true"><i class="bst"></i><span class="bcap">DMG COLLECTION DB</span></div>
+    <i class="bband bst brs" aria-hidden="true"></i>
     <div class="bnr">
       <div class="ring" id="hRing"><span id="hPct">0%</span></div>
       <div class="btx">
