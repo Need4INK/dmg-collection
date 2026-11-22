@@ -80,6 +80,10 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 .result{margin-top:10px}
 .game .ph{color:var(--soft);font-weight:600}
 .game .own{color:var(--lcd)}
+/* ownership flag before the game name: read-only box, ticked when the game is in the collection */
+.flag{display:inline-block;position:relative;width:18px;height:18px;margin-right:8px;vertical-align:-2px;border:2px solid var(--lcd);border-radius:4px;box-sizing:border-box;pointer-events:none}
+.flag.on{background:var(--lcd)}.flag.on::after{content:"";position:absolute;left:4px;top:0;width:5px;height:10px;border:solid #0f380f;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.flag.dim{opacity:.35}
 .out{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr);gap:16px;align-items:stretch}
 .side{display:flex;flex-direction:column;justify-content:space-between;gap:8px}
 .meta.one{margin:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
@@ -137,7 +141,7 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
   <div class="codebox" id="codeBox">
     <label for="code">Label code</label>
     <div class="coderow"><input id="code" placeholder="DMG-…" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
-    <div class="game" id="game"><b class="ph">No game yet</b><div class="sm">Shown once the label code is read</div></div>
+    <div class="game" id="game"><b class="ph"><span class="flag dim" aria-hidden="true"></span>No game yet</b><div class="sm">Shown once the label code is read</div></div>
     <div class="sugg" id="sugg" hidden></div>
   </div>
 </section>
@@ -486,17 +490,18 @@ function setOwned(codes){OWN_CODES=new Set(codes.map(c=>String(c).trim().toUpper
 async function importOwned(f){try{const d=JSON.parse(await f.text()),codes=Array.isArray(d)?d:d.owned||d.codes;
  if(!Array.isArray(codes))throw 0;setOwned(codes);try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}
  note('Collection loaded',`${OWN_GAMES.size} games · ${OWN_CODES.size} carts`)}catch(e){note('Not a collection file','Pick the .json collection file')}}
+const FLAG=(on,dim)=>`<span class="flag${on?' on':''}${dim?' dim':''}" aria-hidden="true"></span>`;
 function showGame(v){const box=$('game'),sg=$('sugg');sg.hidden=true;sg.innerHTML='';
  if(v.includes('?')&&/^DMG-[A-Z0-9?]{2,4}-[A-Z?]{3}$/.test(v)){const re=new RegExp('^'+v.replace(/\?/g,'[A-Z0-9]')+'$'),m=ALL_CODES.filter(c=>re.test(c));
   if(m.length&&m.length<=8){sg.innerHTML=m.map(c=>`<button class="btn" data-c="${c}">${c}</button>`).join('');sg.hidden=false}}
  const i=gameIndex(v),exact=BY_CODE.has(v);
- if(i===undefined){box.innerHTML=CODE_RE.test(v)?'<b>Not in your list</b><div class="sm">No game uses this code. Check it against the label.</div>':v?'<b class="ph">No game yet</b><div class="sm">Format: DMG-XX-YYY or DMG-XXX-YYY</div>':'<b class="ph">No game yet</b><div class="sm">Shown once the label code is read</div>';return}
+ if(i===undefined){box.innerHTML=CODE_RE.test(v)?'<b>'+FLAG(0,1)+'Not in your list</b><div class="sm">No game uses this code. Check it against the label.</div>':v?'<b class="ph">'+FLAG(0,1)+'No game yet</b><div class="sm">Format: DMG-XX-YYY or DMG-XXX-YYY</div>':'<b class="ph">'+FLAG(0,1)+'No game yet</b><div class="sm">Shown once the label code is read</div>';return}
  const g=GAMES[i],sfx=v.split('-').pop(),reg=REGIONS[sfx],mine=OWN_GAMES.get(i);
  // Owned game: check mark before the title, and whether this exact regional variant is in the collection.
  const hint=!mine?'':OWN_CODES.has(v)?'this variant owned':'owned as '+mine.map(c=>c.split('-').pop()).join(', ');
- box.innerHTML=`<b>${mine?'<span class="own">✓</span> ':''}${esc(g[0])}</b><div class="sm">${[g[2],reg||sfx,exact?'':'this region variant is not in your list'].filter(Boolean).map(esc).join(' · ')}${hint?' · <span class="own">'+esc(hint)+'</span>':''}</div>`}
+ box.innerHTML=`<b>${FLAG(!!mine)}${esc(g[0])}</b><div class="sm">${[g[2],reg||sfx,exact?'':'this region variant is not in your list'].filter(Boolean).map(esc).join(' · ')}${hint?' · <span class="own">'+esc(hint)+'</span>':''}</div>`}
 // Short note in the game card (reading progress, problems).
-const note=(t,d='')=>{$('game').innerHTML=`<b class="ph">${esc(t)}</b><div class="sm">${esc(d)||'&nbsp;'}</div>`};
+const note=(t,d='')=>{$('game').innerHTML=`<b class="ph">${FLAG(0,1)}${esc(t)}</b><div class="sm">${esc(d)||'&nbsp;'}</div>`};
 $('sugg').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b)return;$('code').value=b.dataset.c;manual=true;codeChanged()});
 // Everything written into the saved photo: caption for Photos search, title, keywords, and app data to rebuild the collection later.
 function photoMeta(code){const i=gameIndex(code),g=i===undefined?null:GAMES[i],sfx=code.split('-').pop(),reg=REGIONS[sfx]||sfx,id=code.split('-')[1]||'';
