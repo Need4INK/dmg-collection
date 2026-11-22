@@ -86,6 +86,10 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 .side .pair{margin:0;gap:6px}
 /* three stacked buttons beside the photo, kept to the photo's height */
 .side{gap:4px}.side .btn{min-height:38px}
+/* ownership checkbox: always shows checked or unchecked */
+.ownbox{gap:10px;cursor:pointer}.ownbox input{appearance:none;-webkit-appearance:none;margin:0;width:22px;height:22px;flex:none;border:2px solid var(--lcd);border-radius:5px;background:transparent;display:grid;place-items:center}
+.ownbox input:checked{background:var(--lcd)}.ownbox input:checked::after{content:"";width:6px;height:11px;border:solid #0f380f;border-width:0 3px 3px 0;transform:translateY(-1px) rotate(45deg)}
+.ownbox.off{opacity:.45;cursor:default}
 .cartshape{filter:drop-shadow(0 6px 10px rgba(0,0,0,.3))}
 .out img{width:100%;display:block;background:#000}
 /* On-screen only: DMG cart outline (step notch top right, 8.6% x 4.7%, smooth rounded corners) with a darker grey edge. The saved photo stays a plain rectangle. */
@@ -129,7 +133,7 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
       <div class="pair">
         <button class="btn" id="flip" disabled>Rotate 90° ↻</button>
         <button class="btn" id="save" hidden disabled>Save image</button>
-        <button class="btn" id="own" disabled>Add to collection</button>
+        <label class="btn ownbox" id="ownRow"><input type="checkbox" id="own" disabled><span>In collection</span></label>
       </div>
       <p class="meta one" id="saveMsg"></p>
     </div>
@@ -512,9 +516,9 @@ function codeChanged(){saveState('');const v=$('code').value.trim().toUpperCase(
  $('saveMsg').textContent=dl?fileName():'Saving unavailable here'}
 $('code').addEventListener('input',codeChanged);
 // Add / remove the current code (exact regional variant) to the collection on this phone.
-function ownBtn(v){const b=$('own'),ok=BY_CODE.has(v);b.disabled=!ok;b.textContent=ok&&OWN_CODES.has(v)?'Remove from collection':'Add to collection'}
-$('own').addEventListener('click',()=>{const v=$('code').value.trim().toUpperCase();if(!BY_CODE.has(v))return;
- const s=new Set(OWN_CODES);s.has(v)?s.delete(v):s.add(v);setOwned([...s]);
+function ownBtn(v){const c=$('own'),ok=BY_CODE.has(v);c.disabled=!ok;c.checked=ok&&OWN_CODES.has(v);$('ownRow').classList.toggle('off',!ok)}
+$('own').addEventListener('change',()=>{const v=$('code').value.trim().toUpperCase();if(!BY_CODE.has(v))return;
+ const s=new Set(OWN_CODES);$('own').checked?s.add(v):s.delete(v);setOwned([...s]);
  try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}
  showGame(v);ownBtn(v)});
 // Load the collection saved on this phone (after the game lookups above exist).
