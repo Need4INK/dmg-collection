@@ -83,12 +83,11 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 .out{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr);gap:16px;align-items:stretch}
 .side{display:flex;flex-direction:column;justify-content:space-between;gap:8px}
 .meta.one{margin:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
-.side .pair{margin:0;gap:6px}
-/* three stacked buttons beside the photo, kept to the photo's height */
-.side{gap:4px}.side .btn{min-height:38px}
+.side .pair{margin:0}
 /* ownership checkbox: always shows checked or unchecked */
-.ownbox{gap:10px;cursor:pointer}.ownbox input{appearance:none;-webkit-appearance:none;margin:0;width:22px;height:22px;flex:none;border:2px solid var(--lcd);border-radius:5px;background:transparent;display:grid;place-items:center}
-.ownbox input:checked{background:var(--lcd)}.ownbox input:checked::after{content:"";width:6px;height:11px;border:solid #0f380f;border-width:0 3px 3px 0;transform:translateY(-1px) rotate(45deg)}
+.gamerow{display:flex;align-items:center;gap:12px}.gamerow .gtxt{flex:1;min-width:0}
+.ownbox{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:-6px -6px -6px -8px;cursor:pointer}.ownbox input{appearance:none;-webkit-appearance:none;margin:0;width:26px;height:26px;flex:none;border:2px solid var(--lcd);border-radius:5px;background:transparent;display:grid;place-items:center}
+.ownbox input:checked{background:var(--lcd)}.ownbox input:checked::after{content:"";width:7px;height:13px;border:solid #0f380f;border-width:0 3px 3px 0;transform:translateY(-1px) rotate(45deg)}
 .ownbox.off{opacity:.45;cursor:default}
 .cartshape{filter:drop-shadow(0 6px 10px rgba(0,0,0,.3))}
 .out img{width:100%;display:block;background:#000}
@@ -133,7 +132,6 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
       <div class="pair">
         <button class="btn" id="flip" disabled>Rotate 90° ↻</button>
         <button class="btn" id="save" hidden disabled>Save image</button>
-        <label class="btn ownbox" id="ownRow"><input type="checkbox" id="own" disabled><span>In collection</span></label>
       </div>
       <p class="meta one" id="saveMsg"></p>
     </div>
@@ -141,7 +139,7 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
   <div class="codebox" id="codeBox">
     <label for="code">Label code</label>
     <div class="coderow"><input id="code" placeholder="DMG-…" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
-    <div class="game" id="game"><b class="ph">No game yet</b><div class="sm">Shown once the label code is read</div></div>
+    <div class="game gamerow"><label class="ownbox off" id="ownRow" aria-label="In my collection"><input type="checkbox" id="own" disabled></label><div class="gtxt" id="game"><b class="ph">No game yet</b><div class="sm">Shown once the label code is read</div></div></div>
     <div class="sugg" id="sugg" hidden></div>
   </div>
 </section>
@@ -496,9 +494,9 @@ function showGame(v){const box=$('game'),sg=$('sugg');sg.hidden=true;sg.innerHTM
  const i=gameIndex(v),exact=BY_CODE.has(v);
  if(i===undefined){box.innerHTML=CODE_RE.test(v)?'<b>Not in your list</b><div class="sm">No game uses this code. Check it against the label.</div>':v?'<b class="ph">No game yet</b><div class="sm">Format: DMG-XX-YYY or DMG-XXX-YYY</div>':'<b class="ph">No game yet</b><div class="sm">Shown once the label code is read</div>';return}
  const g=GAMES[i],sfx=v.split('-').pop(),reg=REGIONS[sfx],mine=OWN_GAMES.get(i);
- // Owned game: check mark before the title, and whether this exact regional variant is in the collection.
- const hint=!mine?'':OWN_CODES.has(v)?'this variant owned':'owned as '+mine.map(c=>c.split('-').pop()).join(', ');
- box.innerHTML=`<b>${mine?'<span class="own">✓</span> ':''}${esc(g[0])}</b><div class="sm">${[g[2],reg||sfx,exact?'':'this region variant is not in your list'].filter(Boolean).map(esc).join(' · ')}${hint?' · <span class="own">'+esc(hint)+'</span>':''}</div>`}
+ // The checkbox shows this exact variant; the hint names other regions of the same game you own.
+ const others=(mine||[]).filter(c=>c!==v).map(c=>c.split('-').pop()).join(', '),hint=!others?'':OWN_CODES.has(v)?'also '+others:'owned as '+others;
+ box.innerHTML=`<b>${esc(g[0])}</b><div class="sm">${[g[2],reg||sfx,exact?'':'this region variant is not in your list'].filter(Boolean).map(esc).join(' · ')}${hint?' · <span class="own">'+esc(hint)+'</span>':''}</div>`}
 // Short note in the game card (reading progress, problems).
 const note=(t,d='')=>{$('game').innerHTML=`<b class="ph">${esc(t)}</b><div class="sm">${esc(d)||'&nbsp;'}</div>`};
 $('sugg').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b)return;$('code').value=b.dataset.c;manual=true;codeChanged()});
