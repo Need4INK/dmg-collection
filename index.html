@@ -219,6 +219,12 @@ body{display:block}
 .hr b{font-weight:500;width:54px}.hr b.e{color:#e86a9f}.hr b.i{color:var(--lcd)}.hr span{color:#a9a4b0;white-space:nowrap}.hr span:last-child{margin-left:auto}
 .hnone{font-size:13px;color:#a9a4b0}
 #bT{display:block;height:19px;line-height:19px;white-space:nowrap} /* status line keeps its space when blank */
+/* Short screens (iPhone SE, small Android): tighten the scanner so it fits without scrolling; keep the game line clear of the x button */
+@media(max-height:700px){#scan main{padding-bottom:0}#scan .row{margin-top:8px}#scan .row .btn{min-height:40px}.result{margin-top:6px}
+ .out{grid-template-columns:minmax(0,136px) minmax(0,1fr)}.side .btn{min-height:34px}.side .pair{gap:4px}
+ .codebox{margin-top:8px;padding:6px 14px 8px}.coderow input{min-height:40px}.game{margin-top:6px;padding:3px 64px 3px 12px}}
+/* Narrow screens (360px Android): Save | Add image must fit */
+@media(max-width:370px){.split .btn{padding:0 9px;font-size:14px}}
 </style>
 </head>
 <body>
@@ -856,14 +862,16 @@ function clearScan(){src=null;srcData=null;quad=null;rot=0;lastBlob=null;manual=
  view.style.display='none';$('empty').style.display='';for(const id of ['auto','reset','flip','save'])$(id).disabled=true;
  if(outURL){URL.revokeObjectURL(outURL);outURL=null}$('outImg').src=PLACE;$('outMeta').innerHTML=`<b>${OW}×${OH}</b> · –`;
  $('code').value='';codeChanged();status('')}
-function go(id,push=true){if(id===cur)return refresh();if(push)stack.push(cur);if(cur==='bk'&&!bkBusy){bkZip=null;bkPend=null;bkJob++}if(cur==='scan'){preset=null;clearScan()}
+function go(id,push=true){if(id===cur)return refresh();if(push){stack.push(cur);try{history.pushState(null,'')}catch(e){}}if(cur==='bk'&&!bkBusy){bkZip=null;bkPend=null;bkJob++}if(cur==='scan'){preset=null;clearScan()}
  if(cur==='gv'&&gEditing)endEdit(); // left without Save: edits are dropped
  if(id==='home'&&$('cQ').value){$('cQ').value='';$('cQx').hidden=true;if(built)applyFilter()} // back on the cover: the catalog search starts empty again
  cur=id;
  for(const s of document.querySelectorAll('.scr'))s.classList.toggle('on',s.id===id);
  const f=$('fab'),sc=id==='scan';f.classList.toggle('close',sc);f.setAttribute('aria-label',sc?'Close scanner':'Scan a cart');
  if(sc)layout();refresh()}
-function back(){go(stack.pop()||'home',false)}
+// Back goes through the browser history, so Android's back button / gesture steps back inside the app instead of closing it.
+function back(){if(stack.length)history.back();else go('home',false)}
+addEventListener('popstate',()=>go(stack.pop()||'home',false));
 // + on a game page opens the scanner with the shown variant's code already filled in (kept when a photo is picked).
 $('fab').addEventListener('click',()=>{if(cur==='scan')return back();const c=cur==='gv'?gSel:null;go('scan');
  if(c){preset=c;$('code').value=c;manual=true;codeChanged()}});
@@ -883,7 +891,7 @@ function refresh(){if(cur==='home')drawHome();else if(cur==='cat')drawCat();else
 
 // ---- Home cover ----
 function drawHome(){const own=OWN_GAMES.size,p=TOTAL?Math.round(own/TOTAL*100):0;
- $('hRing').style.setProperty('--p',TOTAL?own/TOTAL*100:0);$('hPct').textContent=p+'%';$('hOwn').textContent=own;$('hTot').textContent=TOTAL;
+ $('hRing').style.setProperty('--p',TOTAL?own/TOTAL*100:0);$('hPct').textContent=p+'%';$('hPct').style.fontSize=p>99?'18px':''; /* 100% fits inside the ring */$('hOwn').textContent=own;$('hTot').textContent=TOTAL;
  $('hSub').textContent=`${OWN_CODES.size} carts · ${TOTAL-own} to go`;drawGrid();
  const l=recentList().filter(r=>OWN_CODES.has(r.c)).slice(-4).reverse(),box=$('hRecent');let h='';
  for(let k=0;k<4;k++){const r=l[k];if(!r){h+='<span class="rc"><span class="ghost"></span><span></span></span>';continue}const i=gameIndex(r.c);
