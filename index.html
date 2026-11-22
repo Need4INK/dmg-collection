@@ -154,7 +154,7 @@ body{display:block}
 .gwrap{flex:1;min-height:0;position:relative}.gwrap canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .gtip{position:absolute;z-index:2;left:0;top:0;pointer-events:none;transform:translate(-50%,-100%);max-width:100%;background:#2a2730;color:#fff;font:600 13px/1.2 Inter,system-ui,sans-serif;padding:6px 10px;border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 14px rgba(0,0,0,.5)}.gtip[hidden]{display:none}
 .gloupe{position:absolute;z-index:2;left:0;top:0;width:124px;height:92px;border-radius:44px;pointer-events:none;transform:translate(-50%,-50%);background:#1c1a20;box-shadow:0 0 0 1px rgba(255,255,255,.14),0 10px 28px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.4)}
-.app{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.app input{-webkit-user-select:text;user-select:text}.gloupe[hidden]{display:none}
+.app{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.app input{-webkit-user-select:text;user-select:text}.gloupe[hidden]{display:none}.gloupe.held,.gtip.held{pointer-events:auto;cursor:pointer}
 .recent{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .rc{display:flex;flex-direction:column;gap:4px;background:none;border:0;padding:0;color:#a9a4b0;font:9px/1.2 Inter,system-ui,sans-serif;text-align:left}
 .rc span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:11px}
@@ -567,7 +567,7 @@ const ENG=new Set((()=>{try{return JSON.parse(localStorage.getItem('dmgEnglish')
 const view=$('view'),ctx=view.getContext('2d');
 const MAXSRC=2000,MAXDET=360,OW=560,OH=650; // DMG cart is about 56 x 65 mm
 const MARGIN=.15; // corners may be dragged this far (share of the photo size) past the photo edge
-let reading=false,lastBlob=null,dl=null,lside=0,src=null,srcData=null,quad=null,rot=0,drag=-1,grab=[0,0],outURL=null;
+let userRot=false,reading=false,lastBlob=null,dl=null,lside=0,src=null,srcData=null,quad=null,rot=0,drag=-1,grab=[0,0],outURL=null;
 // The selection window has a fixed size; the photo moves and zooms inside it (vs = view scale and offset in CSS px).
 const vs={s:1,tx:0,ty:0},pts=new Map();let pan=null,pinch=null,lastTap=0;
 
@@ -590,7 +590,7 @@ async function onPick(e){const inp=e.target,fs=[...inp.files],f=fs[0];inp.value=
   const c=src.getContext('2d',{willReadFrequently:true});c.drawImage(img,0,0,src.width,src.height);srcData=c.getImageData(0,0,src.width,src.height).data;
   URL.revokeObjectURL(url);$('code').value='';manual=false;ocrJob++;srcVer++;reading=false;pending=false;codeChanged();$('codeBox').hidden=false;$('empty').style.display='none';view.style.display='block';for(const id of ['auto','reset','flip'])$(id).disabled=false;
   const done=prior||(img.naturalWidth===OW&&img.naturalHeight===OH);
-  if(done){const w=src.width,h=src.height;quad=[[0,0],[w,0],[w,h],[0,h]];rot=0;layout();fitPhoto();status('',true);draw();render();
+  if(done){const w=src.width,h=src.height;quad=[[0,0],[w,0],[w,h],[0,h]];rot=0;userRot=true;layout();fitPhoto();status('',true);draw();render();
    if(prior&&CODE_RE.test(prior.code)){$('code').value=prior.code;manual=true;codeChanged()}}
   else{quad=null;layout();fitPhoto();runDetect()}
   // Photo picked from a game's page: that game's code is already known.
@@ -606,8 +606,11 @@ function runDetect(){status('Looking for the cart…');setTimeout(()=>{
  else{quad=inset();fitPhoto();status('Cart not found. Drag the 4 corners onto it.')}
  // Orientation: the DMG cart's notch is its top right. If it was spotted, use it;
  // otherwise assume the photo was taken upright: top of the photo = top of the cart.
- rot=q&&q.cut>=0?(q.cut+3)%4:0;
+ userRot=false;rot=q&&q.cut>=0?(q.cut+3)%4:0;if(!(q&&q.cut>=0))longUp();
  draw();render();},30);}
+// The cart is taller than wide: if the selection's longer side would come out horizontal, turn it a quarter (the code reader then fixes up/down).
+function longUp(){if(userRot||!quad)return;const Q=[0,1,2,3].map(i=>quad[(i+rot)%4]);
+ if(dist(Q[0],Q[1])+dist(Q[3],Q[2])>dist(Q[0],Q[3])+dist(Q[1],Q[2]))rot=(rot+3)%4}
 const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 
 const VW=()=>view.clientWidth,VH=()=>view.clientHeight;
@@ -662,7 +665,7 @@ view.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;const c=
  if(pinch&&pts.size>=2){const [a,b]=[...pts.values()],mid=[(a[0]+b[0])/2,(a[1]+b[1])/2];vs.s=pinch.s0*dist(a,b)/pinch.d0;clampView();
   vs.tx=mid[0]-pinch.m[0]*vs.s;vs.ty=mid[1]-pinch.m[1]*vs.s;clampView();draw();return}
  if(pan){vs.tx=pan.tx+c[0]-pan.c[0];vs.ty=pan.ty+c[1]-pan.c[1];clampView();draw()}});
-function endDrag(){if(drag<0)return;drag=-1;draw();render()}
+function endDrag(){if(drag<0)return;drag=-1;longUp();draw();render()}
 const up=e=>{pts.delete(e.pointerId);if(drag>=0&&!pts.size)endDrag();
  if(pinch&&pts.size<2){pinch=null;if(pts.size===1){const c=[...pts.values()][0];pan={c,tx:vs.tx,ty:vs.ty}}}
  if(!pts.size)pan=null};
@@ -682,7 +685,7 @@ function render(){if(!quad)return;const Q=[0,1,2,3].map(i=>quad[(i+rot)%4]),img=
   $('outMeta').innerHTML=`<b>${OW}×${OH}</b> · ${Math.round(b.size/1024)} KB`;$('save').disabled=false;},'image/jpeg',.85);}
 
 $('auto').addEventListener('click',()=>src&&runDetect());
-$('reset').addEventListener('click',()=>{if(!src)return;quad=inset();fitPhoto();render();status('Corners reset. Drag them onto the cart.')});
+$('reset').addEventListener('click',()=>{if(!src)return;quad=inset();longUp();fitPhoto();render();status('Corners reset. Drag them onto the cart.')});
 // Saving goes through the page's downloads capability (on iPhone it opens the share sheet: choose Save Image).
 // Outside Claude (installed app / GitHub Pages) it uses the iPhone share sheet directly, or a plain download elsewhere.
 const shareSave={save:async({filename,data})=>{const f=new File([data],filename,{type:'image/jpeg'});
@@ -834,7 +837,7 @@ function ocrWorker(){if(ocrW)return ocrW;try{
 onmessage=e=>{const d=e.data;if(d.type==='src'){S={p:new Uint8ClampedArray(d.buf),w:d.w,h:d.h};return}
  let r=null;try{const W=1000,H=1160,px=new Uint8ClampedArray(W*H*4);warp(S.p,S.w,S.h,d.Q,W,H,px,true);const g=new Uint8Array(W*H);
   for(let i=0;i<W*H;i++)g[i]=(px[i*4]*77+px[i*4+1]*150+px[i*4+2]*29)>>8;r=OCR.read(g,W,H)}catch(x){}
- postMessage({id:d.id,r:r&&{code:r.code,known:!!r.known}})}`;
+ postMessage({id:d.id,r:r&&{code:r.code,known:!!r.known,orient:r.orient}})}`;
  ocrW=new Worker(URL.createObjectURL(new Blob([js],{type:'text/javascript'})));sentVer=-1}catch(e){ocrW=null}return ocrW}
 function readCode(){if(!quad||manual||!pending)return;if(reading)return;pending=false;reading=true;note('Reading the code…');
  const Q=[0,1,2,3].map(i=>quad[(i+rot)%4]),job=++ocrJob,wk=ocrWorker();
@@ -847,9 +850,11 @@ function readCode(){if(!quad||manual||!pending)return;if(reading)return;pending=
   if(manual)codeChanged();
   else if(err)note('Could not read the code','Type it in by hand');
   else if(!r)note('Code not found','Try a sharper, closer photo, or type it in');
-  else{$('code').value=r.code;codeChanged();if(r.code.includes('?'))note('Partly read','Pick a match below or fill in the ? by hand')}
+  else{$('code').value=r.code;codeChanged();if(r.code.includes('?'))note('Partly read','Pick a match below or fill in the ? by hand');
+   // A real code read sideways or upside down shows which way is up: turn the picture to match.
+   if(r.known&&r.orient&&!userRot){rot=(rot+4-r.orient)%4;render()}}
   if(pending)scheduleRead()}}
-$('flip').addEventListener('click',()=>{rot=(rot+3)%4;render()});
+$('flip').addEventListener('click',()=>{userRot=true;rot=(rot+3)%4;render()});
 
 // ================= COLLECTION: Home cover, Catalog, Game =================
 // Cart photos live in this phone's IndexedDB (database dmgdb, store photos): key = code, value {full, thumb, t}.
@@ -943,8 +948,10 @@ function drawHome(){const own=OWN_GAMES.size,p=TOTAL?Math.round(own/TOTAL*100):0
  box.innerHTML=h;loadThumbs(box)}
 $('hRecent').addEventListener('click',e=>{const b=e.target.closest('[data-g]');if(b)openGame(+b.dataset.g)});
 // Every game as one square, A → Z: green when owned. Squares are sized to fill the card.
-// Press and slide over the squares: a bubble magnifies the squares under the finger and names the game; letting go opens it.
-let GG=null,hHi=-1,hDown=false;
+// Press and slide over the squares: a bubble magnifies the squares under the finger and names the game.
+// Letting go keeps the bubble for 3 s; tapping the bubble (or its title) then opens the game.
+let GG=null,hHi=-1,hDown=false,hHeld=-1,hHoldT=0;
+function holdEnd(){clearTimeout(hHoldT);hHeld=-1;$('hLoupe').classList.remove('held');$('hTip').classList.remove('held')}
 function drawGrid(){const w=$('hWrap'),cv=$('hGrid'),W=w.clientWidth,H=w.clientHeight;if(!W||!H)return;
  const cols=27,rows=Math.ceil(TOTAL/cols),g=2,s=Math.max(3,Math.floor(Math.min((W-(cols-1)*g)/cols,(H-(rows-1)*g)/rows)));
  const cw=cols*s+(cols-1)*g,ch=rows*s+(rows-1)*g,d=window.devicePixelRatio||1;
@@ -977,10 +984,14 @@ function gridHi(i){if(i===hHi)return;hHi=i;const tip=$('hTip'),lp=$('hLoupe');if
  const lx=Math.max(LW/2+4,Math.min(wr.width-LW/2-4,sx));lp.style.left=lx+'px';lp.style.top=ly+'px';
  tip.style.left=Math.max(tw/2,Math.min(wr.width-tw/2,sx))+'px';tip.style.top=(ly-LH/2-8)+'px'}
 const hCv=$('hGrid');
-hCv.addEventListener('pointerdown',e=>{hDown=true;try{hCv.setPointerCapture(e.pointerId)}catch(_){}gridHi(gridAt(e))});
+hCv.addEventListener('pointerdown',e=>{holdEnd();hDown=true;try{hCv.setPointerCapture(e.pointerId)}catch(_){}gridHi(gridAt(e))});
 hCv.addEventListener('pointermove',e=>{if(hDown)gridHi(gridAt(e))});
-hCv.addEventListener('pointerup',e=>{if(!hDown)return;hDown=false;const i=gridAt(e);gridHi(-1);if(i>=0)openGame(i)});
-hCv.addEventListener('pointercancel',()=>{hDown=false;gridHi(-1)});
+hCv.addEventListener('pointerup',e=>{if(!hDown)return;hDown=false;const i=gridAt(e);if(i<0){gridHi(-1);return}
+ gridHi(i);hHeld=i;$('hLoupe').classList.add('held');$('hTip').classList.add('held');hHoldT=setTimeout(()=>{holdEnd();gridHi(-1)},3000)});
+hCv.addEventListener('pointercancel',()=>{hDown=false;holdEnd();gridHi(-1)});
+for(const id of ['hLoupe','hTip'])$(id).addEventListener('click',()=>{const i=hHeld;if(i<0)return;holdEnd();gridHi(-1);openGame(i)});
+// A tap anywhere else drops the held bubble.
+document.addEventListener('pointerdown',e=>{if(hHeld>=0&&!e.target.closest('#hLoupe,#hTip,#hGrid')){holdEnd();gridHi(-1)}},true);
 hCv.addEventListener('contextmenu',e=>e.preventDefault());
 hCv.addEventListener('touchstart',e=>e.preventDefault(),{passive:false}); // no iOS long-press selection or magnifier over the grid
 new ResizeObserver(()=>{if(cur==='home')drawGrid()}).observe($('hWrap'));
