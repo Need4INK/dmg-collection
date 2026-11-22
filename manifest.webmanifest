@@ -1,6 +1,6 @@
 {
-  "name": "DMG Cart Scanner",
-  "short_name": "DMG Scanner",
+  "name": "DMG db",
+  "short_name": "DMG db",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

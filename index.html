@@ -3,17 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DMG Cart Scanner</title>
+<title>DMG db</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#18191c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="DMG Scanner">
+<meta name="apple-mobile-web-app-title" content="DMG db">
 <link rel="apple-touch-icon" href="icons/dmgdb3-180.png">
 <link rel="icon" href="icons/dmgdb3-192.png">
 <style>
 @font-face{font-family:Jost;font-weight:500;font-display:swap;src:url(fonts/jost-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:Jost;font-weight:700;font-display:swap;src:url(fonts/jost-latin-700-normal.woff2) format("woff2")}
 @font-face{font-family:Inter;font-weight:400;font-display:swap;src:url(fonts/inter-latin-400-normal.woff2) format("woff2")}
 @font-face{font-family:Inter;font-weight:600;font-display:swap;src:url(fonts/inter-latin-600-normal.woff2) format("woff2")}
 @font-face{font-family:"Pixelify Sans";font-weight:600;font-display:swap;src:url(fonts/pixelify-sans-latin-600-normal.woff2) format("woff2")}
@@ -93,14 +94,136 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 .cartshape{filter:drop-shadow(0 6px 10px rgba(0,0,0,.3))}
 .out img{width:100%;display:block;background:#000}
 /* On-screen only: DMG cart outline (step notch top right, 8.6% x 4.7%, smooth rounded corners) with a darker grey edge. The saved photo stays a plain rectangle. */
-.frame,.out img{clip-path:polygon(0% 3.85%,0.09% 3.1%,0.34% 2.37%,0.75% 1.71%,1.3% 1.13%,1.97% 0.65%,2.73% 0.29%,3.57% 0.07%,4.43% 0%,90.13% 0%,90.62% 0.08%,91.03% 0.32%,91.3% 0.68%,91.4% 1.1%,91.4% 3.6%,91.5% 4.02%,91.77% 4.38%,92.18% 4.62%,92.67% 4.7%,98.73% 4.7%,99.22% 4.78%,99.63% 5.02%,99.9% 5.38%,100% 5.8%,100% 96.15%,99.91% 96.9%,99.66% 97.63%,99.25% 98.29%,98.7% 98.87%,98.03% 99.35%,97.27% 99.71%,96.43% 99.93%,95.57% 100%,4.43% 100%,3.57% 99.93%,2.73% 99.71%,1.97% 99.35%,1.3% 98.87%,0.75% 98.29%,0.34% 97.63%,0.09% 96.9%,0% 96.15%)}
+.frame,.out img,.cart,.cart img{clip-path:polygon(0% 3.85%,0.09% 3.1%,0.34% 2.37%,0.75% 1.71%,1.3% 1.13%,1.97% 0.65%,2.73% 0.29%,3.57% 0.07%,4.43% 0%,90.13% 0%,90.62% 0.08%,91.03% 0.32%,91.3% 0.68%,91.4% 1.1%,91.4% 3.6%,91.5% 4.02%,91.77% 4.38%,92.18% 4.62%,92.67% 4.7%,98.73% 4.7%,99.22% 4.78%,99.63% 5.02%,99.9% 5.38%,100% 5.8%,100% 96.15%,99.91% 96.9%,99.66% 97.63%,99.25% 98.29%,98.7% 98.87%,98.03% 99.35%,97.27% 99.71%,96.43% 99.93%,95.57% 100%,4.43% 100%,3.57% 99.93%,2.73% 99.71%,1.97% 99.35%,1.3% 98.87%,0.75% 98.29%,0.34% 97.63%,0.09% 96.9%,0% 96.15%)}
 .frame{background:#5d5a63;padding:4px}
 .meta{font-size:14px;color:var(--soft)}
 .meta b{color:var(--ink);font-weight:600}
 @media(max-width:480px){.out{grid-template-columns:minmax(0,150px) minmax(0,1fr)}}
+
+/* ---------- Collection: Home cover, Catalog, Game (one screen shown at a time) ---------- */
+body{display:block}
+.scr{display:none}
+#scan.on{display:flex;flex-direction:column;justify-content:center;min-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+.app.on{display:flex;flex-direction:column;gap:14px;height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));max-width:640px;margin:0 auto;padding:14px 20px 16px;overflow:hidden;line-height:1.3}
+.app button{font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.banner{flex:none;background:#7c7482;border-radius:10px 10px 30px 10px;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 2px 0 rgba(0,0,0,.18)}
+.stripes{display:flex;flex-direction:column;gap:3px}.stripes i{height:4px;background:#ab2b64}.stripes i+i{background:#1f2470}
+.bnr{display:flex;align-items:center;gap:16px}
+.ring{--p:0;flex:none;width:92px;height:92px;border-radius:50%;background:conic-gradient(#9bbc0f calc(var(--p)*1%),#3a3740 0);display:grid;place-items:center}
+.ring span{width:68px;height:68px;border-radius:50%;background:#7c7482;display:grid;place-items:center;font:700 22px/1 Jost,system-ui,sans-serif;color:#141416}
+.btx{display:flex;flex-direction:column;gap:3px;color:#1a181d;font-size:12px}
+.big{font:700 38px/1 Jost,system-ui,sans-serif}.big small{font-size:18px}
+.lbl{font:700 12px/1.2 Jost,system-ui,sans-serif;letter-spacing:2px}
+.card{background:#1c1a20;border-radius:12px;padding:12px 14px 14px;display:flex;flex-direction:column;gap:9px;flex:none}
+.card.grow{flex:1;min-height:0}
+.ch{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#a9a4b0}
+.lnk{background:none;border:0;color:#a9a4b0;font:12px Inter,system-ui,sans-serif;padding:6px 0 6px 12px;margin:-6px 0}
+.gwrap{flex:1;min-height:0;position:relative}.gwrap canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+.recent{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.rc{display:flex;flex-direction:column;gap:4px;background:none;border:0;padding:0;color:#a9a4b0;font:9px/1.2 Inter,system-ui,sans-serif;text-align:left}
+.rc span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:11px}
+.cw{position:relative;display:block}
+.cart{display:block;aspect-ratio:56/65;width:100%;background:#5d5a63;padding:2px}.cart img{display:block;width:100%;height:100%;object-fit:cover;background:#a09ca7}
+.ghost{display:block;aspect-ratio:56/65;width:100%;border:1px dashed #4a4651;border-radius:4px 10px 4px 4px;background:#26232a}
+.dot{position:absolute;right:5px;bottom:5px;width:12px;height:12px;border-radius:50%;background:#9bbc0f;box-shadow:0 0 0 2px rgba(0,0,0,.35)}
+.wide{flex:none;height:52px;border-radius:12px;border:0;background:#2a2730;color:#fff;font:700 15px Jost,system-ui,sans-serif;letter-spacing:2px;margin:auto 64px 0 0}
+.fab{position:fixed;z-index:5;right:max(20px,calc(50vw - 300px));bottom:calc(16px + env(safe-area-inset-bottom));width:52px;height:52px;padding:0;border-radius:50%;border:0;background:#ab2b64;color:#fff;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.5);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.fab .x{display:none}.fab.close .x{display:block}.fab.close .p{display:none}
+.top{display:flex;align-items:center;gap:12px;flex:none}
+.back{flex:none;width:44px;height:44px;border-radius:50%;background:#1c1a20;border:0;color:#fff;display:grid;place-items:center;padding:0}
+.tt{display:flex;flex-direction:column;gap:4px;flex:1}.tt b{font:700 18px/1.2 Jost,system-ui,sans-serif;letter-spacing:2px}
+.mini{display:flex;gap:3px;width:48px}.mini i{flex:1;height:3px;background:#ab2b64}.mini i+i{background:#1f2470}
+.cnt{font:700 16px Jost,system-ui,sans-serif}.cnt small{font-size:16px;color:#a9a4b0;font-weight:500}
+.search{flex:none;display:flex;align-items:center;gap:8px;height:44px;background:#1c1a20;border-radius:12px;padding:0 14px;color:#a9a4b0}
+.search input{flex:1;height:100%;background:transparent;border:0;color:#fff;font:16px Inter,system-ui,sans-serif;outline:none;-webkit-appearance:none;appearance:none}
+.search input::placeholder{color:#8d8895}
+.seg{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;background:#1c1a20;border-radius:12px;padding:4px}
+.seg button{height:36px;border:0;border-radius:9px;background:transparent;color:#a9a4b0;font:600 13px Inter,system-ui,sans-serif;white-space:nowrap}.seg button.on{background:#3a3740;color:#fff}
+.tiles{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 8px;align-content:start;padding:0 0 84px;-webkit-mask-image:linear-gradient(#000 calc(100% - 48px),transparent);mask-image:linear-gradient(#000 calc(100% - 48px),transparent)}
+.tile{display:flex;flex-direction:column;gap:5px;background:none;border:0;padding:0;color:#e8e6ea;text-align:left;font:10px/1.25 Inter,system-ui,sans-serif}
+.tile .nm{height:25px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.tile.miss .nm{color:#77727e}
+.ghead{flex:none;display:flex;gap:16px;align-items:flex-end}
+.gph{flex:none;width:150px}
+.gtx{display:flex;flex-direction:column;gap:6px;padding-bottom:4px;font-size:13px;color:#a9a4b0}
+.gtx b{font:700 24px/1.1 Jost,system-ui,sans-serif;color:#e8e6ea}
+.gtx .own,.own{color:#9bbc0f}
+.vars{flex:1;min-height:0;overflow-y:auto;padding:4px 14px;gap:0}
+.vars.edit{box-shadow:inset 0 0 0 2px #ab2b64}
+.vr{flex:none;display:flex;align-items:center;gap:12px;min-height:46px;width:100%;border:0;border-bottom:1px solid #2a2730;background:none;color:#a9a4b0;padding:0;text-align:left;font:12px Inter,system-ui,sans-serif}
+.vr:last-child{border-bottom:0}
+.vr .flag{margin:0;border-color:#4a4651}.vr.on .flag{border-color:#9bbc0f}
+.vr .cd{flex:1;font:500 15px Jost,system-ui,sans-serif;letter-spacing:1px}.vr.on .cd{color:#fff}
+.two{flex:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:auto 64px 0 0}
+.two button{height:52px;border-radius:12px;border:0;background:#2a2730;color:#fff;font:600 14px Inter,system-ui,sans-serif}
+.two button.on{background:#ab2b64}
 </style>
 </head>
 <body>
+<!-- Home cover -->
+<div class="scr app on" id="home">
+  <div class="banner">
+    <div class="stripes" aria-hidden="true"><i></i><i></i></div>
+    <div class="bnr">
+      <div class="ring" id="hRing"><span id="hPct">0%</span></div>
+      <div class="btx">
+        <div class="big"><span id="hOwn">0</span><small> / <span id="hTot">0</span></small></div>
+        <b class="lbl">GAMES OWNED</b>
+        <span id="hSub"></span>
+      </div>
+    </div>
+  </div>
+  <div class="card grow">
+    <div class="ch"><span>Every game, A → Z</span><span>1 square = 1 game</span></div>
+    <div class="gwrap" id="hWrap"><canvas id="hGrid" role="img" aria-label="Owned and missing games"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="ch"><span>Recently added</span><button class="lnk" id="hAll">see all</button></div>
+    <div class="recent" id="hRecent"></div>
+  </div>
+  <button class="wide" id="toCat">CATALOG →</button>
+</div>
+
+<!-- Catalog: one tile per game, A → Z -->
+<div class="scr app" id="cat">
+  <div class="top">
+    <button class="back" data-back aria-label="Back"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 10H4M9 4l-6 6 6 6"/></svg></button>
+    <div class="tt"><div class="mini" aria-hidden="true"><i></i><i></i></div><b>CATALOG</b></div>
+    <span class="cnt" id="cCnt"></span>
+  </div>
+  <label class="search">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+    <input id="cQ" type="search" placeholder="Search title or code" aria-label="Search title or code" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+  </label>
+  <div class="seg" id="cSeg">
+    <button data-f="all" class="on">All <span></span></button>
+    <button data-f="own">Owned <span></span></button>
+    <button data-f="miss">Missing <span></span></button>
+  </div>
+  <div class="tiles" id="cGrid"></div>
+</div>
+
+<!-- One game and its regional variants -->
+<div class="scr app" id="gv">
+  <div class="top">
+    <button class="back" data-back aria-label="Back"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 10H4M9 4l-6 6 6 6"/></svg></button>
+    <div class="tt"><div class="mini" aria-hidden="true"><i></i><i></i></div><b>GAME</b></div>
+  </div>
+  <div class="ghead">
+    <div class="gph" id="gPh"></div>
+    <div class="gtx"><b id="gT"></b><span id="gY"></span><span class="own" id="gO"></span></div>
+  </div>
+  <div class="card vars" id="gVars"></div>
+  <div class="two"><button id="gPhoto">Photo</button><button id="gEdit">Edit owned</button></div>
+</div>
+
+<button class="fab" id="fab" aria-label="Scan a cart">
+  <svg class="p" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M11 3v16M3 11h16"/></svg>
+  <svg class="x" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M4 4l12 12M16 4L4 16"/></svg>
+</button>
+
+<!-- Cart scanner (opened with the + button) -->
+<div class="scr" id="scan">
 <main>
 
 <div class="lens">
@@ -116,8 +239,7 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
   </div>
 </div>
 
-</div>
-<input type="file" id="file" accept="image/*,.json,application/json">
+<input type="file" id="file" accept="image/*,.json,application/json" multiple>
 
 <div class="row one" id="tools">
   <label class="btn a" for="file">New photo</label>
@@ -148,6 +270,7 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 
 
 </main>
+</div>
 
 <script src="data.js"></script>
 <script>
@@ -344,8 +467,10 @@ function inset(){const w=src.width,h=src.height,m=.1;return [[w*m,h*m],[w*(1-m),
 // use the whole picture as the cart instead of detecting a cart inside it, and take its code from the metadata.
 async function scannedInfo(f){try{const s=new TextDecoder('latin1').decode(await f.slice(0,262144).arrayBuffer()),m=s.match(/<dmg:Code>([^<]*)<\/dmg:Code>/);
  return m||s.includes('dmg-cart-scanner.local/ns/')?{code:m?m[1].trim().toUpperCase():''}:null}catch(e){return null}}
-async function onPick(e){const inp=e.target,f=inp.files[0];inp.value='';if(!f)return;
- if(/\.json$/i.test(f.name)||f.type==='application/json'){importOwned(f);return}
+async function onPick(e){const inp=e.target,fs=[...inp.files],f=fs[0];inp.value='';if(!f){preset=null;return}
+ if(/\.json$/i.test(f.name)||f.type==='application/json'){preset=null;importOwned(f);return}
+ if(fs.length>1){preset=null;importPhotos(fs);return} // several saved photos at once: add them to the collection
+ const pre=preset;preset=null;
  status('Loading photo…');
  const prior=await scannedInfo(f);
  const url=URL.createObjectURL(f),img=new Image();
@@ -356,7 +481,9 @@ async function onPick(e){const inp=e.target,f=inp.files[0];inp.value='';if(!f)re
   const done=prior||(img.naturalWidth===OW&&img.naturalHeight===OH);
   if(done){const w=src.width,h=src.height;quad=[[0,0],[w,0],[w,h],[0,h]];rot=0;layout();fitPhoto();status('',true);draw();render();
    if(prior&&CODE_RE.test(prior.code)){$('code').value=prior.code;manual=true;codeChanged()}}
-  else{quad=null;layout();fitPhoto();runDetect()}};
+  else{quad=null;layout();fitPhoto();runDetect()}
+  // Photo picked from a game's page: that game's code is already known.
+  if(pre&&!(prior&&CODE_RE.test(prior.code))){$('code').value=pre;manual=true;codeChanged()}};
  img.onerror=()=>{URL.revokeObjectURL(url);status('Could not read this image. Try another one.')};img.src=url;}
 $('file').addEventListener('change',onPick);
 
@@ -497,6 +624,7 @@ function setOwned(codes){OWN_CODES=new Set(codes.map(c=>String(c).trim().toUpper
  for(const c of OWN_CODES){const i=gameIndex(c);if(i===undefined)continue;if(!OWN_GAMES.has(i))OWN_GAMES.set(i,[]);OWN_GAMES.get(i).push(c)}}
 async function importOwned(f){try{const d=JSON.parse(await f.text()),codes=Array.isArray(d)?d:d.owned||d.codes;
  if(!Array.isArray(codes))throw 0;setOwned(codes);try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}
+ dirty=true;
  note('Collection loaded',`${OWN_GAMES.size} games · ${OWN_CODES.size} carts`)}catch(e){note('Not a collection file','Pick the .json collection file')}}
 const FLAG=(on,dim)=>`<span class="flag${on?' on':''}${dim?' dim':''}" aria-hidden="true"></span>`;
 function showGame(v){const box=$('game'),sg=$('sugg');sg.hidden=true;sg.innerHTML='';
@@ -528,6 +656,7 @@ $('code').addEventListener('input',codeChanged);
 function ownBtn(v){const b=$('own'),ok=BY_CODE.has(v);b.disabled=!ok;b.textContent=ok&&OWN_CODES.has(v)?'Remove from collection':'Add to collection'}
 function applyOwn(v,add,drop=[]){const s=new Set(OWN_CODES);drop.forEach(c=>s.delete(c));add?s.add(v):s.delete(v);setOwned([...s]);
  try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}
+ if(add){addRecent([v]);if(lastBlob)keepPhoto(v,lastBlob,true)} // the cart's photo goes into the collection with it
  const sg=$('sugg');sg.hidden=true;sg.innerHTML='';showGame(v);ownBtn(v)}
 // Adding a region of a game you already own in another region asks first: replace the other copy, keep both, or cancel.
 let ownAsk=null;
@@ -544,6 +673,7 @@ try{const s=localStorage.getItem('dmgOwned');if(s)setOwned(JSON.parse(s))}catch(
 // Tapping anywhere outside the code field closes the keyboard.
 document.addEventListener('pointerdown',e=>{const a=document.activeElement;if(a&&a.tagName==='INPUT'&&e.target!==a)a.blur()});
 $('save').addEventListener('click',async()=>{if(!dl||!lastBlob)return;
+ {const c=$('code').value.trim().toUpperCase();if(OWN_CODES.has(c))keepPhoto(c,lastBlob,true)} // owned cart: this photo becomes its collection photo
  try{const code=$('code').value.trim().toUpperCase(),data=code?await tagJpeg(lastBlob,photoMeta(code)).catch(()=>lastBlob):lastBlob;await dl.save({filename:fileName(),data});saveState('saved')}
  catch(e){saveState(e&&e.code==='declined'?'':'failed')}});
 // The Save button itself shows the result, so nothing else on the page moves.
@@ -581,6 +711,112 @@ function readCode(){if(!quad||manual||!pending)return;if(reading)return;pending=
   else{$('code').value=r.code;codeChanged();if(r.code.includes('?'))note('Partly read','Pick a match below or fill in the ? by hand')}
   if(pending)scheduleRead()}}
 $('flip').addEventListener('click',()=>{rot=(rot+3)%4;render()});
+
+// ================= COLLECTION: Home cover, Catalog, Game =================
+// Cart photos live in this phone's IndexedDB (database dmgdb, store photos): key = code, value {full, thumb, t}.
+// "full" is the saved 560x650 JPEG with its dmg metadata, "thumb" a 168x195 copy for the grids.
+let preset=null,dirty=true,cur='home',stack=[],gIdx=-1,gEditing=false,filt='all';
+const PHOTOS=new Set(),THUMB=new Map(),TOTAL=GAMES.length;
+const PLACE=$('outImg').src; // grey cart drawing used when there is no photo yet
+const DB=new Promise(res=>{try{const r=indexedDB.open('dmgdb',1);r.onupgradeneeded=()=>r.result.createObjectStore('photos');
+ r.onsuccess=()=>res(r.result);r.onerror=()=>res(null)}catch(e){res(null)}});
+async function idb(mode,fn){const db=await DB;if(!db)return null;return new Promise(res=>{let out=null;
+ try{const tx=db.transaction('photos',mode),q=fn(tx.objectStore('photos'));if(q)q.onsuccess=()=>{out=q.result};
+  tx.oncomplete=()=>res(out);tx.onerror=tx.onabort=()=>res(null)}catch(e){res(null)}})}
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+idb('readonly',s=>s.getAllKeys()).then(k=>{(k||[]).forEach(c=>PHOTOS.add(c));dirty=true;refresh()});
+async function thumbOf(blob){const u=URL.createObjectURL(blob);try{const im=await new Promise((r,j)=>{const i=new Image();i.onload=()=>r(i);i.onerror=j;i.src=u});
+ const c=document.createElement('canvas');c.width=168;c.height=195;c.getContext('2d').drawImage(im,0,0,168,195);
+ return await new Promise(r=>c.toBlob(r,'image/jpeg',.8))}finally{URL.revokeObjectURL(u)}}
+async function keepPhoto(code,blob,tag){try{const full=tag&&quad?await tagJpeg(blob,photoMeta(code)).catch(()=>blob):blob,thumb=await thumbOf(full);
+ await idb('readwrite',s=>s.put({full,thumb,t:Date.now()},code));PHOTOS.add(code);
+ if(THUMB.has(code)){URL.revokeObjectURL(THUMB.get(code));THUMB.delete(code)}dirty=true}catch(e){}}
+// Several photos saved by this app, picked at once: each one is filed under the code in its metadata and marked as owned.
+async function importPhotos(fs){let n=0,skip=0;const add=[];
+ for(let k=0;k<fs.length;k++){note('Importing photos…',`${k+1} of ${fs.length}`);const f=fs[k],info=await scannedInfo(f);
+  if(!info||!BY_CODE.has(info.code)){skip++;continue}await keepPhoto(info.code,f,false);add.push(info.code);n++}
+ setOwned([...OWN_CODES,...add]);try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}addRecent(add);dirty=true;
+ note(`Photos imported · ${n}`,skip?`${skip} skipped (no DMG code in the photo)`:`${OWN_GAMES.size} games · ${OWN_CODES.size} carts`)}
+// Recently added carts (newest last), kept on this phone.
+function recentList(){try{return JSON.parse(localStorage.getItem('dmgRecent')||'[]')}catch(e){return []}}
+function addRecent(codes){if(!codes.length)return;const l=recentList().filter(r=>!codes.includes(r.c));const t=Date.now();codes.forEach((c,i)=>l.push({c,t:t+i}));
+ try{localStorage.setItem('dmgRecent',JSON.stringify(l.slice(-60)))}catch(e){}dirty=true}
+// The photo shown for a game: an owned variant that has a photo.
+const photoCode=i=>(OWN_GAMES.get(i)||[]).find(c=>PHOTOS.has(c));
+async function thumbURL(code){if(THUMB.has(code))return THUMB.get(code);const r=await idb('readonly',s=>s.get(code));if(!r)return PLACE;
+ const u=URL.createObjectURL(r.thumb||r.full);THUMB.set(code,u);return u}
+function cartHTML(i,cls='',dot){const own=OWN_GAMES.has(i),pc=own&&photoCode(i);
+ return own?`<span class="cw"><span class="cart"><img alt="" ${pc?`data-c="${pc}" src="${PLACE}"`:`src="${PLACE}"`}></span>${dot?'<i class="dot"></i>':''}</span>`:'<span class="ghost"></span>'}
+// Photos load when their tile scrolls into view.
+const lazy=new IntersectionObserver(es=>{for(const e of es){if(!e.isIntersecting)continue;const im=e.target;lazy.unobserve(im);thumbURL(im.dataset.c).then(u=>{im.src=u})}},{rootMargin:'300px'});
+function loadThumbs(root){root.querySelectorAll('img[data-c]').forEach(im=>lazy.observe(im))}
+
+// ---- navigation: one screen at a time; the round button opens the scanner (+) and closes it (×) ----
+function go(id,push=true){if(id===cur)return refresh();if(push)stack.push(cur);if(cur==='scan')preset=null;cur=id;
+ for(const s of document.querySelectorAll('.scr'))s.classList.toggle('on',s.id===id);
+ const f=$('fab'),sc=id==='scan';f.classList.toggle('close',sc);f.setAttribute('aria-label',sc?'Close scanner':'Scan a cart');
+ if(sc)layout();refresh()}
+function back(){go(stack.pop()||'home',false)}
+$('fab').addEventListener('click',()=>cur==='scan'?back():go('scan'));
+document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',back));
+$('toCat').addEventListener('click',()=>go('cat'));
+$('hAll').addEventListener('click',()=>{setFilter('own');go('cat')});
+function refresh(){if(cur==='home')drawHome();else if(cur==='cat')drawCat();else if(cur==='gv')drawGame()}
+
+// ---- Home cover ----
+function drawHome(){const own=OWN_GAMES.size,p=TOTAL?Math.round(own/TOTAL*100):0;
+ $('hRing').style.setProperty('--p',TOTAL?own/TOTAL*100:0);$('hPct').textContent=p+'%';$('hOwn').textContent=own;$('hTot').textContent=TOTAL;
+ $('hSub').textContent=`${OWN_CODES.size} carts · ${TOTAL-own} to go`;drawGrid();
+ const l=recentList().filter(r=>OWN_CODES.has(r.c)).slice(-4).reverse(),box=$('hRecent');let h='';
+ for(let k=0;k<4;k++){const r=l[k];if(!r){h+='<span class="rc"><span class="ghost"></span><span></span></span>';continue}const i=gameIndex(r.c);
+  h+=`<button class="rc" data-g="${i}"><span class="cw"><span class="cart"><img alt="" src="${PLACE}" ${PHOTOS.has(r.c)?`data-c="${r.c}"`:''}></span></span><span>${esc(r.c)}</span></button>`}
+ box.innerHTML=h;loadThumbs(box)}
+$('hRecent').addEventListener('click',e=>{const b=e.target.closest('[data-g]');if(b)openGame(+b.dataset.g)});
+// Every game as one square, A → Z: green when owned. Squares are sized to fill the card.
+function drawGrid(){const w=$('hWrap'),cv=$('hGrid'),W=w.clientWidth,H=w.clientHeight;if(!W||!H)return;
+ const cols=27,rows=Math.ceil(TOTAL/cols),g=2,s=Math.max(3,Math.floor(Math.min((W-(cols-1)*g)/cols,(H-(rows-1)*g)/rows)));
+ const cw=cols*s+(cols-1)*g,ch=rows*s+(rows-1)*g,d=window.devicePixelRatio||1;cv.style.width=cw+'px';cv.style.height=ch+'px';cv.width=cw*d;cv.height=ch*d;
+ const c=cv.getContext('2d');c.setTransform(d,0,0,d,0,0);
+ for(let i=0;i<TOTAL;i++){const x=(i%cols)*(s+g),y=Math.floor(i/cols)*(s+g);c.fillStyle=OWN_GAMES.has(i)?'#9bbc0f':'#2e2b34';c.fillRect(x,y,s,s)}}
+new ResizeObserver(()=>{if(cur==='home')drawGrid()}).observe($('hWrap'));
+
+// ---- Catalog ----
+let built=false;
+function buildCat(){const g=$('cGrid');g.innerHTML=GAMES.map((x,i)=>`<button class="tile" data-g="${i}"></button>`).join('');built=true}
+function fillTile(t){const i=+t.dataset.g,own=OWN_GAMES.has(i);t.classList.toggle('miss',!own);
+ t.innerHTML=cartHTML(i,'',true)+`<span class="nm">${esc(GAMES[i][0])}</span>`}
+function drawCat(){if(!built)buildCat();const g=$('cGrid');
+ if(dirty){g.querySelectorAll('.tile').forEach(fillTile);dirty=false;loadThumbs(g)}
+ $('cCnt').innerHTML=`${OWN_GAMES.size}<small> / ${TOTAL}</small>`;
+ const sp=$('cSeg').querySelectorAll('span');sp[0].textContent=TOTAL;sp[1].textContent=OWN_GAMES.size;sp[2].textContent=TOTAL-OWN_GAMES.size;applyFilter()}
+function setFilter(f){filt=f;$('cSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.f===f));if(built)applyFilter()}
+function applyFilter(){const q=$('cQ').value.trim().toLowerCase();
+ $('cGrid').querySelectorAll('.tile').forEach(t=>{const i=+t.dataset.g,own=OWN_GAMES.has(i),G=GAMES[i];
+  let ok=filt==='all'||(filt==='own')===own;if(ok&&q)ok=G[0].toLowerCase().includes(q)||G[1].some(c=>c.toLowerCase().includes(q));t.hidden=!ok})}
+$('cSeg').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(b){setFilter(b.dataset.f);$('cGrid').scrollTop=0}});
+$('cQ').addEventListener('input',()=>{applyFilter();$('cGrid').scrollTop=0});
+$('cQ').addEventListener('keydown',e=>{if(e.key==='Enter')$('cQ').blur()});
+$('cGrid').addEventListener('click',e=>{const t=e.target.closest('[data-g]');if(t)openGame(+t.dataset.g)});
+
+// ---- Game page: photo, variants, ownership ----
+function openGame(i){gIdx=i;gEditing=false;go('gv')}
+let gURL=null;
+async function drawGame(){const i=gIdx,G=GAMES[i];if(!G)return;const mine=OWN_GAMES.get(i)||[];
+ $('gT').textContent=G[0];$('gY').textContent=`${G[2]} · ${G[1].length} variant${G[1].length>1?'s':''}`;
+ $('gO').textContent=mine.length?`Owned · ${mine.length} of ${G[1].length}`:'Missing';$('gO').className=mine.length?'own':'';
+ $('gVars').classList.toggle('edit',gEditing);$('gEdit').classList.toggle('on',gEditing);$('gEdit').textContent=gEditing?'Done':'Edit owned';
+ $('gVars').innerHTML=G[1].map(c=>{const o=OWN_CODES.has(c),s=c.split('-').pop();
+  return `<button class="vr${o?' on':''}" data-c="${c}" ${gEditing?'':'tabindex="-1"'}>${FLAG(o)}<span class="cd">${c}</span><span>${esc(REGIONS[s]||s)}</span></button>`}).join('');
+ const pc=photoCode(i),ph=$('gPh');ph.innerHTML=mine.length?`<span class="cart"><img alt="${esc(G[0])}" src="${PLACE}"></span>`:'<span class="ghost"></span>';
+ if(pc){const r=await idb('readonly',s=>s.get(pc));if(r&&gIdx===i&&cur==='gv'){if(gURL)URL.revokeObjectURL(gURL);gURL=URL.createObjectURL(r.full);const im=ph.querySelector('img');if(im)im.src=gURL}}}
+$('gEdit').addEventListener('click',()=>{gEditing=!gEditing;drawGame()});
+$('gVars').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b||!gEditing)return;const c=b.dataset.c,s=new Set(OWN_CODES),add=!s.has(c);
+ add?s.add(c):s.delete(c);setOwned([...s]);try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]))}catch(e){}if(add)addRecent([c]);dirty=true;drawGame()});
+// Photo: opens the photo picker in the scanner with this game's code filled in (owned variant first).
+$('gPhoto').addEventListener('click',()=>{const G=GAMES[gIdx];if(!G)return;preset=(OWN_GAMES.get(gIdx)||[])[0]||G[1][0];go('scan');preset=preset||null;$('file').click()});
+// Ownership changed in the scanner: screens redraw when they are shown again.
+$('own').addEventListener('click',()=>{dirty=true});
+refresh();
 }
 </script>
 </body>
