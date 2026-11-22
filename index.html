@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>DMG db</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#18191c">
@@ -244,6 +244,8 @@ body{display:block}
 /* History columns: type, date · time, then carts and photos as plain numbers under the header */
 .hr span{flex:1}.hr i,.hc i{font-style:normal;flex:none;text-align:right;color:#a9a4b0}.hr i:nth-of-type(1),.hc i:nth-of-type(1){width:38px}.hr i:nth-of-type(2),.hc i:nth-of-type(2){width:50px}
 .hc{display:flex;gap:8px}
+/* No page zoom: no pinch or double-tap zoom anywhere (the scanner photo has its own pinch zoom). */
+html,body{touch-action:pan-x pan-y}
 </style>
 </head>
 <body>
@@ -677,6 +679,8 @@ view.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});
 view.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('selectstart',e=>{if(e.target.closest&&e.target.closest('.screen'))e.preventDefault()});
 for(const t of ['gesturestart','gesturechange'])view.addEventListener(t,e=>e.preventDefault());
+// iOS ignores user-scalable=no in Safari: block its pinch gestures on the whole page too.
+for(const t of ['gesturestart','gesturechange','gestureend'])document.addEventListener(t,e=>e.preventDefault(),{passive:false});
 
 const oc=document.createElement('canvas');oc.width=OW;oc.height=OH;const octx=oc.getContext('2d');
 function render(){if(!quad)return;const Q=[0,1,2,3].map(i=>quad[(i+rot)%4]),img=octx.createImageData(OW,OH);
