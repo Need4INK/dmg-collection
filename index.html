@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DMG Cart Scanner</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#18191c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="DMG Scanner">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<style>
+@font-face{font-family:Jost;font-weight:500;font-display:swap;src:url(fonts/jost-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:Inter;font-weight:400;font-display:swap;src:url(fonts/inter-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:Inter;font-weight:600;font-display:swap;src:url(fonts/inter-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Pixelify Sans";font-weight:600;font-display:swap;src:url(fonts/pixelify-sans-latin-600-normal.woff2) format("woff2")}
+</style>
+<style>
+/* VOICE: a small, friendly workbench tool, quiet and precise.
+   IDEA: the page behaves like a DMG body: warm grey shell, green screen, maroon A button.
+   PICTURE: the photo itself, framed like the Game Boy screen, with draggable corners.
+   COLOUR and TYPE: shell grey, screen green #9bbc0f/#0f380f, maroon accent; Pixelify Sans title, Inter body.
+   LAYOUT: one calm column: title, screen with photo, controls, straightened result. */
+/* Always dark, whatever the phone's light/dark setting */
+:root,:root[data-theme=light],:root[data-theme=dark]{color-scheme:dark;--bg:#18191c;--ink:#e9e7e2;--soft:#a3a5a8;
+--screen:#0f380f;--lcd:#9bbc0f;--a:#9a2257;--card:#25272b;--line:#3b3e44}
+html{background:#18191c}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;min-height:100vh;background:radial-gradient(120% 60% at 50% 0%,#26282d 0%,var(--bg) 70%) no-repeat,var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+main{max-width:640px;margin:0 auto;padding:8px 16px 8px}
+h1{font:600 clamp(30px,8vw,40px)/1.05 "Pixelify Sans",system-ui,sans-serif;margin:0 0 6px;text-wrap:balance}
+h2{font:600 20px/1.2 "Pixelify Sans",system-ui,sans-serif;margin:0 0 10px}
+.sub{color:var(--soft);margin:0 0 12px;font-size:15px}
+
+.screen{background:var(--screen);position:absolute;left:13.2%;top:8.3cqw;width:73.6%;height:67cqw;display:grid;place-items:center;overflow:hidden}
+#view{display:none;touch-action:none;position:absolute;inset:0;width:100%;height:100%}
+.screen,#view,.out img{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.empty{text-align:center;color:var(--lcd);padding:8px}
+.empty p{margin:10px 0 0;font-size:12px;opacity:.85;white-space:nowrap}
+.empty .btn{font-size:15px;padding:0 16px}
+/* Screen lens measured from a reference photo of the DMG lens (797 x 600). The screen window is enlarged and centred (13.2-86.8% across, 8.9-97.9% down, between the stripes and the bottom) with the original 1.1:1 proportion; bottom-right radius halved;
+   stripes at 4.1% / 6.4% height, caption ends at 82.2%, right stripes 83.7-95%, LED at 6.9% / 38.7%, large bottom-right radius. */
+.lens{position:relative;aspect-ratio:100/77.1;background:#7c7482;border-radius:1.5% 1.5% 8% 1.5% / 1.95% 1.95% 10.35% 1.95%;container-type:inline-size;box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 2px 0 rgba(0,0,0,.18)}
+.lens .band{position:absolute;top:3cqw;height:3.5cqw} /* caption and stripes 1.5x the original size */
+.lens .st{background:linear-gradient(#ab2b64 0 27%,transparent 27% 73.5%,#141a6a 73.5% 100%)}
+.lens .lrow{left:3.8%;width:83%;display:flex;align-items:center;gap:2.3cqw}
+.lens .lrow .st{flex:1;height:100%}
+.lens .cap{font:500 4.43cqw/1 Jost,Futura,"Century Gothic",system-ui,sans-serif;color:#ccc6d2;letter-spacing:.02em;white-space:nowrap}
+.lens .rs{left:88.3%;width:7.9%}
+.led{position:absolute;left:6.9%;top:30.7cqw;width:4%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:#3b2a31;box-shadow:inset 0 1px 2px rgba(0,0,0,.55)}
+.led.on{background:#ff3b30;box-shadow:0 0 1.6cqw #ff3b30,inset 0 -1px 2px rgba(0,0,0,.3)}
+.status{margin:8px 2px 0;color:var(--soft);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 18px;border-radius:22px;border:0;font:600 15px Inter,system-ui,sans-serif;cursor:pointer;background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.btn.a{background:var(--a);color:#fff;box-shadow:0 2px 0 #5e1235}
+.btn.lcd{background:var(--lcd);color:var(--screen);box-shadow:0 2px 0 #306230;font-size:16px}
+.btn:focus-visible{outline:3px solid var(--lcd);outline-offset:2px}
+.btn[disabled]{opacity:.45}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+[hidden]{display:none!important}
+.row.one{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.row.one .btn{padding:0 6px;white-space:nowrap}
+.btn.saved{background:#306230;color:#e8f5b0;box-shadow:0 2px 0 #0f380f}
+.pair{display:grid;gap:8px;margin-top:10px}.pair .btn{width:100%;white-space:nowrap;padding:0 10px}
+.codebox{margin-top:10px;padding:8px 14px 10px;border-radius:12px;background:var(--card)}
+.codebox label{font-weight:600;font-size:15px}
+.coderow{display:grid;grid-template-columns:minmax(0,1fr);margin-top:4px}
+.coderow input{min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:600 17px ui-monospace,Menlo,monospace;padding:0 12px;text-transform:uppercase}
+.coderow input.bad{border-color:#d0453a;box-shadow:0 0 0 1px #d0453a}
+.game{margin-top:8px;padding:6px 12px;border-radius:10px;background:var(--bg)}
+.game b{display:block;font-size:17px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.game .sm{font-size:14px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sugg{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.sugg .btn{min-height:40px;font:600 15px ui-monospace,Menlo,monospace}
+.coderow input:focus-visible{outline:3px solid var(--lcd);outline-offset:1px}
+@media(max-width:360px){.row.one .btn{font-size:14px}}
+input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.result{margin-top:10px}
+.game .ph{color:var(--soft);font-weight:600}
+.out{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr);gap:16px;align-items:stretch}
+.side{display:flex;flex-direction:column;justify-content:space-between;gap:8px}
+.meta.one{margin:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+.side .pair{margin:0}
+.cartshape{filter:drop-shadow(0 6px 10px rgba(0,0,0,.3))}
+.out img{width:100%;display:block;background:#000}
+/* On-screen only: DMG cart outline (step notch top right, 8.6% x 4.7%, smooth rounded corners) with a darker grey edge. The saved photo stays a plain rectangle. */
+.frame,.out img{clip-path:polygon(0% 3.85%,0.09% 3.1%,0.34% 2.37%,0.75% 1.71%,1.3% 1.13%,1.97% 0.65%,2.73% 0.29%,3.57% 0.07%,4.43% 0%,90.13% 0%,90.62% 0.08%,91.03% 0.32%,91.3% 0.68%,91.4% 1.1%,91.4% 3.6%,91.5% 4.02%,91.77% 4.38%,92.18% 4.62%,92.67% 4.7%,98.73% 4.7%,99.22% 4.78%,99.63% 5.02%,99.9% 5.38%,100% 5.8%,100% 96.15%,99.91% 96.9%,99.66% 97.63%,99.25% 98.29%,98.7% 98.87%,98.03% 99.35%,97.27% 99.71%,96.43% 99.93%,95.57% 100%,4.43% 100%,3.57% 99.93%,2.73% 99.71%,1.97% 99.35%,1.3% 98.87%,0.75% 98.29%,0.34% 97.63%,0.09% 96.9%,0% 96.15%)}
+.frame{background:#5d5a63;padding:4px}
+.meta{font-size:14px;color:var(--soft)}
+.meta b{color:var(--ink);font-weight:600}
+@media(max-width:480px){.out{grid-template-columns:minmax(0,150px) minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<main>
+
+<div class="lens">
+  <div class="band lrow" aria-hidden="true"><i class="st"></i><span class="cap">DMG CART SCANNER</span></div>
+  <i class="band st rs" aria-hidden="true"></i>
+  <b class="led" id="led" aria-hidden="true"></b>
+  <div class="screen" id="screen">
+    <div class="empty" id="empty">
+      <label class="btn lcd" for="file">Take or choose a photo</label>
+      <p>One cart · label up · plain background</p>
+    </div>
+    <canvas id="view"></canvas>
+  </div>
+</div>
+
+</div>
+<input type="file" id="file" accept="image/*">
+
+<div class="row one" id="tools">
+  <label class="btn a" for="file">New photo</label>
+  <button class="btn" id="auto" disabled>Auto-detect</button>
+  <button class="btn" id="reset" disabled>Reset</button>
+</div>
+
+<section class="result" id="result">
+    <div class="out">
+    <div class="cartshape"><div class="frame"><img id="outImg" alt="Straightened cart" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 56 65'%3E%3Crect width='56' height='65' fill='%23a09ca7'/%3E%3Crect x='8' y='3' width='40' height='9' rx='4.5' fill='%2394909b'/%3E%3Crect x='9' y='17' width='38' height='38' rx='1.5' fill='%238d8994'/%3E%3C/svg%3E"></div></div>
+    <div class="side">
+      <p class="meta one" id="outMeta"><b>560×650</b> · –</p>
+      <div class="pair">
+        <button class="btn" id="flip" disabled>Rotate 90° ↻</button>
+        <button class="btn" id="save" hidden disabled>Save image</button>
+      </div>
+      <p class="meta one" id="saveMsg"></p>
+    </div>
+  </div>
+  <div class="codebox" id="codeBox">
+    <label for="code">Label code</label>
+    <div class="coderow"><input id="code" placeholder="DMG-…" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
+    <div class="game" id="game"><b class="ph">No game yet</b><div class="sm">Shown once the label code is read</div></div>
+    <div class="sugg" id="sugg" hidden></div>
+  </div>
+</section>
+
+
+</main>
+
+<script src="data.js"></script>
+<script>
+{
+// CORE START
+function boxBlur(a,w,h,r){const t=new Float32Array(a.length),n=2*r+1;
+ for(let y=0;y<h;y++){const o=y*w;let s=0;for(let x=-r;x<=r;x++)s+=a[o+Math.min(w-1,Math.max(0,x))];
+  for(let x=0;x<w;x++){t[o+x]=s/n;s+=a[o+Math.min(w-1,x+r+1)]-a[o+Math.max(0,x-r)];}}
+ for(let x=0;x<w;x++){let s=0;for(let y=-r;y<=r;y++)s+=t[Math.min(h-1,Math.max(0,y))*w+x];
+  for(let y=0;y<h;y++){a[y*w+x]=s/n;s+=t[Math.min(h-1,y+r+1)*w+x]-t[Math.max(0,y-r)*w+x];}}}
+function otsu(D){let mx=0;for(const v of D)if(v>mx)mx=v;if(mx<=0)return 0;const H=new Float64Array(256);
+ for(const v of D)H[Math.min(255,(v/mx*255)|0)]++;const N=D.length;let sum=0;for(let i=0;i<256;i++)sum+=i*H[i];
+ let sB=0,wB=0,best=-1,th=0;for(let i=0;i<256;i++){wB+=H[i];if(!wB)continue;const wF=N-wB;if(!wF)break;sB+=i*H[i];
+  const v=wB*wF*(sB/wB-(sum-sB)/wF)**2;if(v>best){best=v;th=i;}}return (th+1)/255*mx;}
+function morph(m,w,h,dil){const o=new Uint8Array(m.length);for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=m[y*w+x];let v=c;
+ for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const yy=y+dy,xx=x+dx;const p=(yy<0||yy>=h||xx<0||xx>=w)?c:m[yy*w+xx];if(dil?p:!p)v=dil?1:0;}
+ o[y*w+x]=v;}return o;}
+function largest(m,w,h){const lab=new Int32Array(m.length),st=new Int32Array(m.length);let best=0,bestL=0,L=0;
+ for(let i=0;i<m.length;i++){if(!m[i]||lab[i])continue;L++;let sp=0,n=0;st[sp++]=i;lab[i]=L;
+  while(sp){const p=st[--sp];n++;const x=p%w,y=(p/w)|0;
+   if(x>0&&m[p-1]&&!lab[p-1]){lab[p-1]=L;st[sp++]=p-1}
+   if(x<w-1&&m[p+1]&&!lab[p+1]){lab[p+1]=L;st[sp++]=p+1}
+   if(y>0&&m[p-w]&&!lab[p-w]){lab[p-w]=L;st[sp++]=p-w}
+   if(y<h-1&&m[p+w]&&!lab[p+w]){lab[p+w]=L;st[sp++]=p+w}}
+  if(n>best){best=n;bestL=L}}return {lab,L:bestL,area:best};}
+function hull(P){P=P.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);const lo=[],up=[];
+ for(const p of P){while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p)}
+ for(let i=P.length-1;i>=0;i--){const p=P[i];while(up.length>=2&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p)}
+ lo.pop();up.pop();return lo.concat(up);}
+function area4(a,b,c,d){return Math.abs(a[0]*b[1]-b[0]*a[1]+b[0]*c[1]-c[0]*b[1]+c[0]*d[1]-d[0]*c[1]+d[0]*a[1]-a[0]*d[1])/2}
+function order(Q){const cx=Q.reduce((s,p)=>s+p[0],0)/4,cy=Q.reduce((s,p)=>s+p[1],0)/4;
+ Q=Q.slice().sort((a,b)=>Math.atan2(a[1]-cy,a[0]-cx)-Math.atan2(b[1]-cy,b[0]-cx));
+ let s=0,m=Infinity;Q.forEach((p,i)=>{if(p[0]+p[1]<m){m=p[0]+p[1];s=i}});return Q.slice(s).concat(Q.slice(0,s));}
+function refine(Q,P){const lines=[];
+ for(let k=0;k<4;k++){const a=Q[k],b=Q[(k+1)%4];let ux=b[0]-a[0],uy=b[1]-a[1];const L=Math.hypot(ux,uy);ux/=L;uy/=L;
+  let ln={px:a[0],py:a[1],ux,uy};
+  for(let it=0;it<3;it++){const tol=it?Math.max(1.5,L*.015):Math.max(3,L*.05);let n=0,mx=0,my=0;const S=[];
+   for(const p of P){const t=(p[0]-a[0])*ux+(p[1]-a[1])*uy;if(t<L*.15||t>L*.85)continue;
+    const dd=Math.abs(-(p[0]-ln.px)*ln.uy+(p[1]-ln.py)*ln.ux);if(dd<=tol){S.push(p);mx+=p[0];my+=p[1];n++}}
+   if(n<6)break;mx/=n;my/=n;let sxx=0,sxy=0,syy=0;for(const p of S){const dx=p[0]-mx,dy=p[1]-my;sxx+=dx*dx;sxy+=dx*dy;syy+=dy*dy}
+   const th=.5*Math.atan2(2*sxy,sxx-syy);let vx=Math.cos(th),vy=Math.sin(th);if(vx*ux+vy*uy<0){vx=-vx;vy=-vy}
+   ln={px:mx,py:my,ux:vx,uy:vy};}
+  lines.push(ln);}
+ const diag=Math.hypot(Q[0][0]-Q[2][0],Q[0][1]-Q[2][1]);
+ return Q.map((q,k)=>{const l1=lines[(k+3)%4],l2=lines[k];const cr=l1.ux*l2.uy-l1.uy*l2.ux;if(Math.abs(cr)<1e-6)return q;
+  const t=((l2.px-l1.px)*l2.uy-(l2.py-l1.py)*l2.ux)/cr;const p=[l1.px+t*l1.ux,l1.py+t*l1.uy];
+  return Math.hypot(p[0]-q[0],p[1]-q[1])>diag*.1?q:p;});}
+function detectCore(d,w,h){const N=w*h,R=new Float32Array(N),G=new Float32Array(N),B=new Float32Array(N);
+ for(let i=0;i<N;i++){R[i]=d[i*4];G[i]=d[i*4+1];B[i]=d[i*4+2]}
+ const br=Math.max(1,Math.round(Math.min(w,h)/150));boxBlur(R,w,h,br);boxBlur(G,w,h,br);boxBlur(B,w,h,br);
+ const m=Math.max(2,Math.round(Math.min(w,h)*.03)),rs=[],gs=[],bs=[];
+ for(let y=0;y<h;y+=2)for(let x=0;x<w;x+=2)if(x<m||y<m||x>=w-m||y>=h-m){const i=y*w+x;rs.push(R[i]);gs.push(G[i]);bs.push(B[i])}
+ const med=a=>{a.sort((p,q)=>p-q);return a[a.length>>1]};const r0=med(rs),g0=med(gs),b0=med(bs);
+ const D=new Float32Array(N);for(let i=0;i<N;i++)D[i]=Math.hypot(R[i]-r0,G[i]-g0,B[i]-b0);
+ const th=Math.max(18,otsu(D));let M=new Uint8Array(N);for(let i=0;i<N;i++)M[i]=D[i]>th?1:0;
+ M=morph(morph(M,w,h,1),w,h,0);M=morph(morph(M,w,h,0),w,h,1);
+ const c=largest(M,w,h);if(c.area<N*.03||c.area>N*.97)return null;
+ const P=[];for(let y=0;y<h;y++){let a=-1,b=-1;for(let x=0;x<w;x++)if(c.lab[y*w+x]===c.L){if(a<0)a=x;b=x}if(a>=0){P.push([a,y]);if(b!==a)P.push([b,y])}}
+ for(let x=0;x<w;x++){let a=-1,b=-1;for(let y=0;y<h;y++)if(c.lab[y*w+x]===c.L){if(a<0)a=y;b=y}if(a>=0){P.push([x,a]);if(b!==a)P.push([x,b])}}
+ let Hl=hull(P);if(Hl.length<4)return null;if(Hl.length>60){const s=[];for(let i=0;i<60;i++)s.push(Hl[Math.floor(i*Hl.length/60)]);Hl=s}
+ let best=0,Q=null;const n=Hl.length;
+ for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)for(let k=j+1;k<n;k++)for(let l=k+1;l<n;l++){const A=area4(Hl[i],Hl[j],Hl[k],Hl[l]);if(A>best){best=A;Q=[Hl[i],Hl[j],Hl[k],Hl[l]]}}
+ if(!Q||best<N*.02)return null;const F=refine(order(Q),P);
+ const cx=F.reduce((a,p)=>a+p[0],0)/4,cy=F.reduce((a,p)=>a+p[1],0)/4;
+ const inC=(x,y)=>{x=Math.round(x);y=Math.round(y);return x>=0&&y>=0&&x<w&&y<h&&c.lab[y*w+x]===c.L};
+ const sc=F.map(p=>{let k=0,n=0;for(const f of [.05,.065,.08])for(const o of [-.02,0,.02]){
+   const x=p[0]+(cx-p[0])*f+(cy-p[1])*o,y=p[1]+(cy-p[1])*f-(cx-p[0])*o;n++;if(inC(x,y))k++}return k/n});
+ const lo=sc.indexOf(Math.min(...sc)),rest=sc.filter((v,i)=>i!==lo);
+ const cut=sc[lo]<.5&&Math.min(...rest)>.75?lo:-1;return {q:F,cut};}
+function homog(s,d){const A=[],B=[];
+ for(let i=0;i<4;i++){const [x,y]=s[i],[u,v]=d[i];A.push([x,y,1,0,0,0,-u*x,-u*y]);B.push(u);A.push([0,0,0,x,y,1,-v*x,-v*y]);B.push(v)}
+ for(let c=0;c<8;c++){let p=c;for(let r=c+1;r<8;r++)if(Math.abs(A[r][c])>Math.abs(A[p][c]))p=r;[A[c],A[p]]=[A[p],A[c]];[B[c],B[p]]=[B[p],B[c]];
+  for(let r=0;r<8;r++)if(r!==c){const f=A[r][c]/A[c][c];for(let k=c;k<8;k++)A[r][k]-=f*A[c][k];B[r]-=f*B[c]}}
+ return B.map((b,i)=>b/A[i][i]);}
+function warp(s,sw,sh,Q,W,Hh,out,fast){const H=homog([[0,0],[W,0],[W,Hh],[0,Hh]],Q),o=out,off=fast?[.5]:[.25,.75],n=off.length*off.length;
+ for(let v=0;v<Hh;v++)for(let u=0;u<W;u++){let r=0,g=0,b=0;
+  for(const oy of off)for(const ox of off){const U=u+ox,V=v+oy,z=H[6]*U+H[7]*V+1;
+   let x=(H[0]*U+H[1]*V+H[2])/z-.5,y=(H[3]*U+H[4]*V+H[5])/z-.5;if(x<-1||y<-1||x>sw||y>sh){r+=24;g+=26;b+=22;continue}x=Math.max(0,Math.min(sw-1.001,x));y=Math.max(0,Math.min(sh-1.001,y));
+   const x0=x|0,y0=y|0,fx=x-x0,fy=y-y0,i=(y0*sw+x0)*4,j=i+sw*4;
+   r+=(s[i]*(1-fx)+s[i+4]*fx)*(1-fy)+(s[j]*(1-fx)+s[j+4]*fx)*fy;
+   g+=(s[i+1]*(1-fx)+s[i+5]*fx)*(1-fy)+(s[j+1]*(1-fx)+s[j+5]*fx)*fy;
+   b+=(s[i+2]*(1-fx)+s[i+6]*fx)*(1-fy)+(s[j+2]*(1-fx)+s[j+6]*fx)*fy;}
+  const k=(v*W+u)*4;o[k]=r/n;o[k+1]=g/n;o[k+2]=b/n;o[k+3]=255}}
+// CORE END
+
+// OCR START
+// Small built-in reader for the DMG label code (DMG-XX(XX)-YYY). No network, no external engine.
+// Pipeline: binarise (both polarities) -> connected components -> chains of same-height glyphs
+// in all 4 reading directions -> template matching (Helvetica-like glyphs) -> code grammar.
+function makeOCR(){
+ const T=DMG_GLYPHS;
+ const GW=T.gw,GH=T.gh,CH=T.chars,NC=CH.length,N=GW*GH;
+ let REG=['USA','CAN','EUR','UKV','NOE','FRG','FRA','ESP','ITA','HOL','SCN','AUS','FAH'],KNOWN={};
+ function norm(v){let m=0;for(const x of v)m+=x;m/=v.length;let s=0;for(let i=0;i<v.length;i++){v[i]-=m;s+=v[i]*v[i]}s=Math.sqrt(s);if(s<1e-6)return null;for(let i=0;i<v.length;i++)v[i]/=s;return v}
+ const bin=atob(T.b64),tm=[];
+ for(let f=0;f<T.fonts;f++)for(let c=0;c<NC;c++){const k=f*NC+c,v=new Float32Array(N);
+  for(let i=0;i<N;i+=2){const b=bin.charCodeAt((k*N+i)>>1);v[i]=(b>>4)*17;v[i+1]=(b&15)*17}
+  tm.push({c,v:norm(v),a:T.aspect[k]})}
+ const CI=Object.fromEntries([...CH].map((c,i)=>[c,i]));
+
+ function rotate(g,w,h,k){if(!k)return {g,w,h};const W=k%2?h:w,H=k%2?w:h,o=new Uint8Array(W*H);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){let sx,sy;
+   if(k===1){sx=y;sy=h-1-x}else if(k===2){sx=w-1-x;sy=h-1-y}else{sx=w-1-y;sy=x}
+   o[y*W+x]=g[sy*w+sx]}return {g:o,w:W,h:H}}
+ // Bradley local threshold: ink where pixel is clearly darker (or lighter) than its neighbourhood.
+ function binarize(g,w,h,dark){const I=new Float64Array((w+1)*(h+1));
+  for(let y=0;y<h;y++){let r=0;for(let x=0;x<w;x++){r+=g[y*w+x];I[(y+1)*(w+1)+x+1]=I[y*(w+1)+x+1]+r}}
+  const s=Math.max(15,Math.round(Math.min(w,h)/14))>>1,m=new Uint8Array(w*h),t=.14;
+  for(let y=0;y<h;y++){const y0=Math.max(0,y-s),y1=Math.min(h,y+s+1);for(let x=0;x<w;x++){const x0=Math.max(0,x-s),x1=Math.min(w,x+s+1);
+   const n=(y1-y0)*(x1-x0),S=I[y1*(w+1)+x1]-I[y0*(w+1)+x1]-I[y1*(w+1)+x0]+I[y0*(w+1)+x0],v=g[y*w+x]*n;
+   m[y*w+x]=dark?(v<S*(1-t)&&S/n-g[y*w+x]>10):(v>S*(1+t)&&g[y*w+x]-S/n>10)}}return m}
+ function components(m,w,h){const lab=new Int32Array(w*h),st=new Int32Array(w*h),C=[];let L=0;
+  for(let i=0;i<m.length;i++){if(!m[i]||lab[i])continue;L++;let sp=0,x0=1e9,y0=1e9,x1=-1,y1=-1,a=0;st[sp++]=i;lab[i]=L;
+   while(sp){const p=st[--sp],x=p%w,y=(p/w)|0;a++;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;
+    if(x>0&&m[p-1]&&!lab[p-1]){lab[p-1]=L;st[sp++]=p-1}if(x<w-1&&m[p+1]&&!lab[p+1]){lab[p+1]=L;st[sp++]=p+1}if(y>0&&m[p-w]&&!lab[p-w]){lab[p-w]=L;st[sp++]=p-w}if(y<h-1&&m[p+w]&&!lab[p+w]){lab[p+w]=L;st[sp++]=p+w}}
+   const cw=x1-x0+1,chh=y1-y0+1;if(chh>=9&&chh<=80&&a>=12&&cw<=chh*6)C.push({id:L,x0,y0,x1,y1,w:cw,h:chh})}
+  return {lab,C}}
+ // Glyph -> 16x20 vector (only the component's own pixels), then best score per character.
+ function classify(g,w,lab,c,dark){const v=new Float32Array(N),S=4;
+  for(let v_=0;v_<GH;v_++)for(let u=0;u<GW;u++){let s=0;for(let j=0;j<S;j++)for(let i=0;i<S;i++){
+   const x=Math.min(c.x1,c.x0+Math.floor((u+(i+.5)/S)*c.w/GW)),y=Math.min(c.y1,c.y0+Math.floor((v_+(j+.5)/S)*c.h/GH)),p=y*w+x;
+   if(lab[p]===c.id)s+=dark?255-g[p]:g[p]}v[v_*GW+u]=s/(S*S)}
+  const n=norm(v),sc=new Float32Array(NC).fill(-1);if(!n)return sc;const a=c.w/c.h;
+  for(const t of tm){let d=0;for(let i=0;i<N;i++)d+=n[i]*t.v[i];d-=.22*Math.abs(Math.log(a/t.a));if(d>sc[t.c])sc[t.c]=d}return sc}
+ // Touching glyphs (and dashes stuck to them): try cuts at thin columns, keep the split whose pieces read best.
+ function split1(g,w,lab,c,dark,ext){const col=new Int32Array(c.w),H=c.h;
+  for(let y=c.y0;y<=c.y1;y++)for(let x=c.x0;x<=c.x1;x++)if(lab[y*w+x]===c.id)col[x-c.x0]++;
+  const cand=[0];let x=1;while(x<c.w){if(col[x]<=.45*H){let e=x;while(e+1<c.w&&col[e+1]<=.45*H)e++;cand.push(x);if(e-x>=2)cand.push((x+e+1)>>1);if(e+1<c.w)cand.push(e+1);x=e+1}else x++}
+  if(ext)for(let x=2;x<c.w-2;x++)if(col[x]<=.75*H&&col[x]<col[x-1]&&col[x]<=col[x+1]&&col[x]<col[x-2]&&col[x]<=col[x+2])cand.push(x,x+1);
+  cand.push(c.w);const B=[...new Set(cand)].sort((p,q)=>p-q),M=B.length;if(M>48)return null;
+  const piece=(i,j)=>{const a0=c.x0+B[i],a1=c.x0+B[j]-1;let b0=1e9,b1=-1;for(let y=c.y0;y<=c.y1;y++)for(let xx=a0;xx<=a1;xx++)if(lab[y*w+xx]===c.id){if(y<b0)b0=y;if(y>b1)b1=y}
+   if(b1<0)return {skip:true,s:0};const p={id:c.id,x0:a0,y0:b0,x1:a1,y1:b1,w:a1-a0+1,h:b1-b0+1};
+   const mid=(b0+b1)/2-c.y0;if(p.h<.35*H&&mid>.3*H&&mid<.7*H&&p.w>=.15*H&&p.w<=.8*H)return {dash:true,s:.3,p}; // a dash
+   if(p.h<.75*H||p.w>1.35*H||p.w<.08*H)return null;const sc=classify(g,w,lab,p,dark);let m=-9;for(const v of sc)if(v>m)m=v;return {s:m-.55,p}};
+  const dp=new Float64Array(M).fill(-1e9),from=new Int32Array(M).fill(-1),pc=new Array(M);dp[0]=0;
+  for(let j=1;j<M;j++)for(let i=j-1;i>=0;i--){if(B[j]-B[i]>1.4*H)break;if(dp[i]<-1e8)continue;const r=piece(i,j);if(!r)continue;const v=dp[i]+r.s;if(v>dp[j]){dp[j]=v;from[j]=i;pc[j]=r}}
+  if(dp[M-1]<-1e8)return null;const out=[];let sum=0,n=0;for(let j=M-1;j>0;j=from[j]){const r=pc[j];if(r.p&&!r.dash&&!r.skip){out.unshift(r.p);sum+=r.s;n++}}return {out,mean:n?sum/n:-1}}
+ function split(g,w,lab,c,dark){const a=split1(g,w,lab,c,dark,false);if(a&&a.mean>.2)return a.out;const b=split1(g,w,lab,c,dark,true);
+  const r=!a?b:!b?a:(b.mean>a.mean?b:a);return r?r.out:[c]}
+ function scanPass(g,w,h,dark,best,orient){const m=binarize(g,w,h,dark),{lab,C:raw}=components(m,w,h);
+  const C=[];for(const c of raw){if(c.w<=c.h*1.1)C.push(c);else if(c.w<=c.h*7)C.push(...split(g,w,lab,c,dark))}
+  C.sort((a,b)=>a.x0-b.x0);const nx=new Int32Array(C.length).fill(-1),hasPrev=new Uint8Array(C.length);
+  for(let i=0;i<C.length;i++){const a=C[i];let bj=-1,bg=1e9;
+   for(let j=i+1;j<C.length&&C[j].x0<a.x1+1.3*a.h;j++){const b=C[j];if(b.x0<a.x0+.3*a.w)continue;
+    if(Math.abs(b.h-a.h)>.22*a.h||Math.abs(b.y0-a.y0)>.2*a.h||Math.abs(b.y1-a.y1)>.2*a.h)continue;const gp=b.x0-a.x1;if(gp<-2)continue;if(gp<bg){bg=gp;bj=j}}
+   nx[i]=bj}
+  for(const j of nx)if(j>=0)hasPrev[j]=1;
+  const cache=new Map(),cls=i=>{if(!cache.has(i))cache.set(i,classify(g,w,lab,C[i],dark));return cache.get(i)};
+  for(let s=0;s<C.length;s++){if(hasPrev[s])continue;const seq=[s];while(nx[seq[seq.length-1]]>=0&&seq.length<40)seq.push(nx[seq[seq.length-1]]);
+   if(seq.length<8)continue;
+   for(let st=0;st+8<=seq.length;st++){
+    const d=cls(seq[st]),mm=cls(seq[st+1]),gg=cls(seq[st+2]);const pre=[d[CI.D],mm[CI.M],gg[CI.G]];if(Math.min(...pre)<.45)continue;
+    for(let n=8;n<=10&&st+n<=seq.length;n++){const W=seq.slice(st,st+n).map(i=>C[i]),H=W.reduce((s,c)=>s+c.h,0)/n,gaps=[];
+     for(let i=1;i<n;i++)gaps.push(W[i].x0-W[i-1].x1);
+     const inner=gaps.filter((_,i)=>i!==2&&i!==n-4).sort((a,b)=>a-b),gm=inner.length?inner[inner.length>>1]:0;
+     const d1=gaps[2]-gm,d2=gaps[n-4]-gm;if(d1<.18*H||d2<.18*H)continue; // the two dashes leave wider gaps
+     if(st+n<seq.length&&gaps.length&&C[seq[st+n]].x0-W[n-1].x1<gaps[n-4]*.9)continue; // code must end at a word break
+     const sc=W.map((_,i)=>cls(seq[st+i]));let rb=null,rs=-9;
+     for(const r of REG){const v=(sc[n-3][CI[r[0]]]+sc[n-2][CI[r[1]]]+sc[n-1][CI[r[2]]])/3;if(v>rs){rs=v;rb=r}}
+     let id='',ids=0;for(let i=3;i<n-3;i++){let bi=0;for(let k=1;k<NC;k++)if(sc[i][k]>sc[i][bi])bi=k;let sec=-9;for(let k=0;k<NC;k++)if(k!==bi&&sc[i][k]>sec)sec=sc[i][k];
+      const ok=sc[i][bi]>=.5&&sc[i][bi]-sec>.015;id+=ok?CH[bi]:'?';ids+=sc[i][bi]}
+     const total=(pre[0]+pre[1]+pre[2]+rs*3+ids)/n;
+     // Snap to a real code from the list when one fits almost as well as the free reading.
+     let free=0;for(let i=0;i<n;i++){let mx=-9;for(const v of sc[i])if(v>mx)mx=v;free+=mx}free/=n;
+     let kb=null,ks=-9;for(const k of KNOWN[n]||[]){let v=0,lo=9;for(let i=0;i<n;i++){const x=sc[i][k.ix[i]];v+=x;if(x<lo)lo=x}v/=n;if(lo>=.45&&v>ks){ks=v;kb=k.code}}
+     if(kb&&ks>=.62&&free-ks<=.06){if(!best.v||ks+.02>best.v.score)best.v={code:kb,score:ks+.02,orient,dark,box:W,known:true};continue}
+     if(!best.v||total>best.v.score)best.v={code:`DMG-${id}-${rs>=.5?rb:'???'}`,score:total,orient,dark,box:W}}}}}
+ // g: grayscale Uint8Array of the straightened cart (about 1000 px wide)
+ function read(g,w,h){const best={v:null};
+  // bottom-edge text first, then the two side edges; light-on-dark print last. Stop early on a clear read.
+  for(const dark of [true,false])for(const k of [0,3,1,2]){const r=rotate(g,w,h,k);scanPass(r.g,r.w,r.h,dark,best,k);if(best.v&&best.v.score>=.74&&!best.v.code.includes('?'))return best.v}
+  return best.v&&best.v.score>=.55?best.v:null}
+ // codes: list like ['DMG-FK-ESP', ...]; enables snapping to real codes and the real region list.
+ function setCodes(codes){KNOWN={};const rs=new Set();for(const c of codes){const m=/^DMG-([A-Z0-9]{2,4})-([A-Z]{3})$/.exec(c);if(!m)continue;rs.add(m[2]);
+  const s='DMG'+m[1]+m[2];if([...s].some(ch=>!(ch in CI)))continue;(KNOWN[s.length]=KNOWN[s.length]||[]).push({code:c,ix:[...s].map(ch=>CI[ch])})}
+  if(rs.size)REG=[...rs]}
+ return {read,setCodes};
+}
+const OCR=makeOCR();
+// OCR END
+
+const $=id=>document.getElementById(id);
+const view=$('view'),ctx=view.getContext('2d');
+const MAXSRC=2000,MAXDET=360,OW=560,OH=650; // DMG cart is about 56 x 65 mm
+const MARGIN=.15; // corners may be dragged this far (share of the photo size) past the photo edge
+let reading=false,lastBlob=null,dl=null,lside=0,src=null,srcData=null,quad=null,rot=0,drag=-1,grab=[0,0],outURL=null;
+// The selection window has a fixed size; the photo moves and zooms inside it (vs = view scale and offset in CSS px).
+const vs={s:1,tx:0,ty:0},pts=new Map();let pan=null,pinch=null,lastTap=0;
+
+function status(t,ok){$('led').classList.toggle('on',!!ok)} // the red LED shows whether a cart was found
+function inset(){const w=src.width,h=src.height,m=.1;return [[w*m,h*m],[w*(1-m),h*m],[w*(1-m),h*(1-m)],[w*m,h*(1-m)]]}
+
+function onPick(e){const inp=e.target,f=inp.files[0];inp.value='';if(!f)return;status('Loading photo…');
+ const url=URL.createObjectURL(f),img=new Image();
+ img.onload=()=>{const s=Math.min(1,MAXSRC/Math.max(img.naturalWidth,img.naturalHeight));
+  src=document.createElement('canvas');src.width=Math.round(img.naturalWidth*s);src.height=Math.round(img.naturalHeight*s);
+  const c=src.getContext('2d',{willReadFrequently:true});c.drawImage(img,0,0,src.width,src.height);srcData=c.getImageData(0,0,src.width,src.height).data;
+  URL.revokeObjectURL(url);$('code').value='';manual=false;ocrJob++;srcVer++;reading=false;pending=false;codeChanged();$('codeBox').hidden=false;$('empty').style.display='none';view.style.display='block';for(const id of ['auto','reset','flip'])$(id).disabled=false;
+  quad=null;layout();fitPhoto();runDetect();};
+ img.onerror=()=>{URL.revokeObjectURL(url);status('Could not read this image. Try another one.')};img.src=url;}
+$('file').addEventListener('change',onPick);
+
+function runDetect(){status('Looking for the cart…');setTimeout(()=>{
+ const s=Math.min(1,MAXDET/Math.max(src.width,src.height)),w=Math.round(src.width*s),h=Math.round(src.height*s);
+ const t=document.createElement('canvas');t.width=w;t.height=h;const tc=t.getContext('2d',{willReadFrequently:true});tc.drawImage(src,0,0,w,h);
+ let q=null;try{q=detectCore(tc.getImageData(0,0,w,h).data,w,h)}catch(e){q=null}
+ if(q){quad=q.q.map(p=>[p[0]/s,p[1]/s]);fitQuad();status('Cart found · drag corners · pinch to zoom',true)}
+ else{quad=inset();fitPhoto();status('Cart not found. Drag the 4 corners onto it.')}
+ // Orientation: the DMG cart's notch is its top right. If it was spotted, use it;
+ // otherwise assume the photo was taken upright: top of the photo = top of the cart.
+ rot=q&&q.cut>=0?(q.cut+3)%4:0;
+ draw();render();},30);}
+const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+
+const VW=()=>view.clientWidth,VH=()=>view.clientHeight;
+function clampView(){if(!src)return;const W=VW(),H=VH(),fit=Math.min(W/src.width,H/src.height);vs.s=Math.max(fit*.6,Math.min(fit*12,vs.s));
+ const iw=src.width*vs.s,ih=src.height*vs.s;vs.tx=Math.min(W*.8,Math.max(W*.2-iw,vs.tx));vs.ty=Math.min(H*.8,Math.max(H*.2-ih,vs.ty))}
+function fitBox(x0,y0,x1,y1,pad){const W=VW(),H=VH();vs.s=Math.min((W-2*pad)/Math.max(1,x1-x0),(H-2*pad)/Math.max(1,y1-y0));vs.tx=W/2-vs.s*(x0+x1)/2;vs.ty=H/2-vs.s*(y0+y1)/2;clampView();draw()}
+function fitPhoto(){if(src)fitBox(0,0,src.width,src.height,10)}
+function fitQuad(){const xs=quad.map(p=>p[0]),ys=quad.map(p=>p[1]);fitBox(Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys),40)}
+function layout(){const dpr=window.devicePixelRatio||1,W=$('screen').clientWidth,H=$('screen').clientHeight;
+ const w=Math.round(W*dpr),h=Math.round(H*dpr);if(view.width!==w||view.height!==h){view.width=w;view.height=h}clampView();draw()}
+const ro=new ResizeObserver(()=>layout());ro.observe($('screen'));
+const toS=p=>[p[0]*vs.s+vs.tx,p[1]*vs.s+vs.ty];
+function draw(){if(!src)return;const dpr=window.devicePixelRatio||1;ctx.setTransform(dpr,0,0,dpr,0,0);
+ ctx.fillStyle='#c4c2bc';ctx.fillRect(0,0,VW(),VH()); // DMG grey around the photo
+ ctx.setTransform(dpr*vs.s,0,0,dpr*vs.s,dpr*vs.tx,dpr*vs.ty);const S=vs.s;
+ ctx.drawImage(src,0,0);if(!quad)return;
+ ctx.save();ctx.beginPath();ctx.rect(0,0,src.width,src.height);ctx.clip();
+ ctx.beginPath();ctx.rect(0,0,src.width,src.height);ctx.moveTo(...quad[0]);for(let i=1;i<4;i++)ctx.lineTo(...quad[i]);ctx.closePath();
+ ctx.fillStyle='rgba(15,56,15,.55)';ctx.fill('evenodd');ctx.restore();
+ ctx.beginPath();ctx.moveTo(...quad[0]);for(let i=1;i<4;i++)ctx.lineTo(...quad[i]);ctx.closePath();ctx.lineWidth=2.5/S;ctx.strokeStyle='#9bbc0f';ctx.stroke();
+ quad.forEach((p,i)=>{ctx.beginPath();ctx.arc(p[0],p[1],(i===drag?16:13)/S,0,7);ctx.fillStyle='rgba(155,188,15,.3)';ctx.fill();ctx.lineWidth=2.5/S;ctx.strokeStyle='#e8f5b0';ctx.stroke();});
+ if(drag>=0){const p=quad[drag],R=58,Z=3,[lx,ly]=loupePos(...toS(p),R);
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.save();ctx.beginPath();ctx.arc(lx,ly,R,0,7);ctx.clip();ctx.fillStyle='#c4c2bc';ctx.fill();
+  const sz=2*R/(Z*S),k=2*R/sz;let sx=p[0]-sz/2,sy=p[1]-sz/2;
+  // draw only the part of the source that lies inside the photo (Safari skips out-of-bounds source rects)
+  const x0=Math.max(0,sx),y0=Math.max(0,sy),x1=Math.min(src.width,sx+sz),y1=Math.min(src.height,sy+sz);
+  if(x1>x0&&y1>y0)ctx.drawImage(src,x0,y0,x1-x0,y1-y0,lx-R+(x0-sx)*k,ly-R+(y0-sy)*k,(x1-x0)*k,(y1-y0)*k);
+  // Crosshair follows the two cart edges that meet at this corner, so it can be lined up with the cart outline.
+  ctx.beginPath();for(const nb of [quad[(drag+1)%4],quad[(drag+3)%4]]){let dx=nb[0]-p[0],dy=nb[1]-p[1];const L=Math.hypot(dx,dy)||1;dx/=L;dy/=L;
+   ctx.moveTo(lx-dx*R,ly-dy*R);ctx.lineTo(lx+dx*R,ly+dy*R);}
+  ctx.lineWidth=3.5;ctx.strokeStyle='rgba(0,0,0,.55)';ctx.stroke();ctx.lineWidth=1.5;ctx.strokeStyle='#c6f04a';ctx.stroke();ctx.restore();
+  ctx.beginPath();ctx.arc(lx,ly,R,0,7);ctx.lineWidth=3;ctx.strokeStyle='#e8f5b0';ctx.stroke();}}
+
+// The loupe stays where it is and only moves when the dragged corner comes close to it.
+function loupePos(px,py,R){const cw=VW(),ch=VH(),m=8;
+ const P=[[R+m,R+m],[cw-R-m,R+m],[R+m,ch-R-m],[cw-R-m,ch-R-m]],bad=i=>Math.hypot(px-P[i][0],py-P[i][1])<R+40;
+ if(bad(lside))for(let i=0;i<4;i++)if(!bad(i)){lside=i;break}return P[lside];}
+
+// Touch: one finger on a corner moves the corner; one finger elsewhere moves the photo; two fingers zoom; double tap fits the cart.
+const local=e=>{const r=view.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top]};
+const toSrc=c=>[(c[0]-vs.tx)/vs.s,(c[1]-vs.ty)/vs.s];
+function startPinch(){const [a,b]=[...pts.values()],mid=[(a[0]+b[0])/2,(a[1]+b[1])/2];pinch={d0:dist(a,b)||1,s0:vs.s,m:toSrc(mid)};pan=null}
+view.addEventListener('pointerdown',e=>{if(!src)return;e.preventDefault();view.setPointerCapture(e.pointerId);const c=local(e);pts.set(e.pointerId,c);
+ if(pts.size===2){if(drag>=0)endDrag();startPinch();return}if(pts.size>2)return;
+ let k=-1,bd=40;if(quad)quad.forEach((q,i)=>{const d=dist(c,toS(q));if(d<bd){bd=d;k=i}});
+ if(k>=0){drag=k;const p=toSrc(c);grab=[quad[k][0]-p[0],quad[k][1]-p[1]];draw();return}
+ const now=Date.now();if(now-lastTap<320){quad?fitQuad():fitPhoto();lastTap=0;return}lastTap=now;
+ pan={c,tx:vs.tx,ty:vs.ty}});
+view.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;const c=local(e);pts.set(e.pointerId,c);
+ if(drag>=0){const p=toSrc(c),mx=MARGIN*src.width,my=MARGIN*src.height;
+  quad[drag]=[Math.max(-mx,Math.min(src.width+mx,p[0]+grab[0])),Math.max(-my,Math.min(src.height+my,p[1]+grab[1]))];draw();return}
+ if(pinch&&pts.size>=2){const [a,b]=[...pts.values()],mid=[(a[0]+b[0])/2,(a[1]+b[1])/2];vs.s=pinch.s0*dist(a,b)/pinch.d0;clampView();
+  vs.tx=mid[0]-pinch.m[0]*vs.s;vs.ty=mid[1]-pinch.m[1]*vs.s;clampView();draw();return}
+ if(pan){vs.tx=pan.tx+c[0]-pan.c[0];vs.ty=pan.ty+c[1]-pan.c[1];clampView();draw()}});
+function endDrag(){if(drag<0)return;drag=-1;draw();render()}
+const up=e=>{pts.delete(e.pointerId);if(drag>=0&&!pts.size)endDrag();
+ if(pinch&&pts.size<2){pinch=null;if(pts.size===1){const c=[...pts.values()][0];pan={c,tx:vs.tx,ty:vs.ty}}}
+ if(!pts.size)pan=null};
+view.addEventListener('pointerup',up);view.addEventListener('pointercancel',up);
+view.addEventListener('wheel',e=>{if(!src)return;e.preventDefault();const c=local(e),m=toSrc(c);vs.s*=Math.exp(-e.deltaY*.0015);clampView();
+ vs.tx=c[0]-m[0]*vs.s;vs.ty=c[1]-m[1]*vs.s;clampView();draw()},{passive:false});
+// Stop iOS press-and-hold / hard-press actions (preview, callout, selection) and page zoom on the photo.
+view.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});
+view.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('selectstart',e=>{if(e.target.closest&&e.target.closest('.screen'))e.preventDefault()});
+for(const t of ['gesturestart','gesturechange'])view.addEventListener(t,e=>e.preventDefault());
+
+const oc=document.createElement('canvas');oc.width=OW;oc.height=OH;const octx=oc.getContext('2d');
+function render(){if(!quad)return;const Q=[0,1,2,3].map(i=>quad[(i+rot)%4]),img=octx.createImageData(OW,OH);
+ warp(srcData,src.width,src.height,Q,OW,OH,img.data);octx.putImageData(img,0,0);
+ oc.toBlob(b=>{if(!b)return;lastBlob=b;saveState('');if(outURL)URL.revokeObjectURL(outURL);outURL=URL.createObjectURL(b);$('outImg').src=outURL;scheduleRead();
+  $('outMeta').innerHTML=`<b>${OW}×${OH}</b> · ${Math.round(b.size/1024)} KB`;$('save').disabled=false;},'image/jpeg',.85);}
+
+$('auto').addEventListener('click',()=>src&&runDetect());
+$('reset').addEventListener('click',()=>{if(!src)return;quad=inset();fitPhoto();render();status('Corners reset. Drag them onto the cart.')});
+// Saving goes through the page's downloads capability (on iPhone it opens the share sheet: choose Save Image).
+// Outside Claude (installed app / GitHub Pages) it uses the iPhone share sheet directly, or a plain download elsewhere.
+const shareSave={save:async({filename,data})=>{const f=new File([data],filename,{type:'image/jpeg'});
+ if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]})}catch(e){if(e&&e.name==='AbortError'){const x=new Error('declined');x.code='declined';throw x}throw e}return}
+ const a=document.createElement('a'),u=URL.createObjectURL(data);a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}};
+(async()=>{try{const framed=window.top!==window;for(let i=0;framed&&i<50&&!window.claude;i++)await new Promise(r=>setTimeout(r,100));dl=window.claude?await window.claude.use('downloads'):null}catch(e){dl=null}if(!dl)dl=shareSave;$('save').hidden=false;codeChanged()})();
+// Offline: cache the app files on the phone (ignored where service workers aren't allowed).
+try{if('serviceWorker' in navigator&&location.protocol==='https:'&&window.top===window)navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
+// Writes the cart details into the JPEG:
+//  EXIF  ImageDescription (caption, shown and searchable in iPhone Photos) + Software
+//  XMP   dc:title / dc:description / dc:subject keywords / xmp:CreatorTool + dmg:* app data (read back by the app later)
+//  IPTC  ObjectName, Caption-Abstract, Keywords, OriginatingProgram
+async function tagJpeg(blob,m){const src=new Uint8Array(await blob.arrayBuffer());if(src[0]!==0xFF||src[1]!==0xD8)return blob;
+ const enc=new TextEncoder(),x=t=>String(t).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+ const seg=(marker,body)=>{const o=new Uint8Array(4+body.length);o[0]=0xFF;o[1]=marker;o[2]=(body.length+2)>>8;o[3]=(body.length+2)&255;o.set(body,4);return o};
+ const cat=(...a)=>{const o=new Uint8Array(a.reduce((s,v)=>s+v.length,0));let p=0;for(const v of a){o.set(v,p);p+=v.length}return o};
+ const APP='DMG Cart Scanner',kw=m.keywords||[];
+ // EXIF: big-endian TIFF, IFD0 with ImageDescription (0x010E) and Software (0x0131)
+ const vals=[[0x010E,cat(enc.encode(m.caption),new Uint8Array([0]))],[0x0131,cat(enc.encode(APP),new Uint8Array([0]))]];
+ const n=vals.length,head=8+2+12*n+4;let data=new Uint8Array(0);const ifd=new Uint8Array(head),dv=new DataView(ifd.buffer);
+ ifd.set([0x4D,0x4D,0,42,0,0,0,8]);dv.setUint16(8,n);
+ vals.forEach(([tag,v],i)=>{const e=10+12*i;dv.setUint16(e,tag);dv.setUint16(e+2,2);dv.setUint32(e+4,v.length);
+  if(v.length<=4)ifd.set(v,e+8);else{dv.setUint32(e+8,head+data.length);data=cat(data,v,v.length%2?new Uint8Array([0]):new Uint8Array(0))}});
+ const exif=seg(0xE1,cat(enc.encode('Exif\0\0'),ifd,data));
+ const d=m.data||{},dmg=Object.entries(d).map(([k,v])=>`<dmg:${k}>${x(typeof v==='string'?v:JSON.stringify(v))}</dmg:${k}>`).join('');
+ const xmpS=`<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?><x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xmp="http://ns.adobe.com/xap/1.0/" xmlns:dmg="https://dmg-cart-scanner.local/ns/1.0/"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">${x(m.title)}</rdf:li></rdf:Alt></dc:title><dc:description><rdf:Alt><rdf:li xml:lang="x-default">${x(m.caption)}</rdf:li></rdf:Alt></dc:description><dc:subject><rdf:Bag>${kw.map(k=>`<rdf:li>${x(k)}</rdf:li>`).join('')}</rdf:Bag></dc:subject><xmp:CreatorTool>${APP}</xmp:CreatorTool>${dmg}</rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end="w"?>`;
+ const xmp=seg(0xE1,cat(enc.encode('http://ns.adobe.com/xap/1.0/\0'),enc.encode(xmpS)));
+ const ds=(nr,v)=>{v=typeof v==='string'?enc.encode(v):v;return cat(new Uint8Array([0x1C,2,nr,v.length>>8,v.length&255]),v)};
+ let ip=cat(new Uint8Array([0x1C,1,90,0,3,0x1B,0x25,0x47]),ds(0,new Uint8Array([0,4])),ds(5,m.title.slice(0,64)),...kw.map(k=>ds(25,k.slice(0,64))),ds(65,APP),ds(120,m.caption));
+ if(ip.length%2)ip=cat(ip,new Uint8Array([0]));
+ const irb=new Uint8Array(12);irb.set(enc.encode('8BIM'));irb[4]=4;irb[5]=4;new DataView(irb.buffer).setUint32(8,ip.length);
+ const iptc=seg(0xED,cat(enc.encode('Photoshop 3.0\0'),irb,ip));
+ let p=2;if(src[2]===0xFF&&src[3]===0xE0)p=4+((src[4]<<8)|src[5]);
+ return new Blob([cat(src.slice(0,p),exif,xmp,iptc,src.slice(p))],{type:'image/jpeg'})}
+const REGIONS={USA:'North America',CAN:'Canada',EUR:'Europe',UKV:'United Kingdom',NOE:'Germany / Austria',FRG:'Germany',FRA:'France',ESP:'Spain',ITA:'Italy',HOL:'Netherlands',SCN:'Scandinavia',AUS:'Australia',ASI:'Asia',JPN:'Japan'};
+// Master list from the collection spreadsheet: [names, codes, first release year]
+const GAMES=DMG_GAMES;
+const BY_CODE=new Map(),BY_ID=new Map(),ALL_CODES=[];
+GAMES.forEach((g,i)=>{for(const c of g[1]){BY_CODE.set(c,i);ALL_CODES.push(c);const id=c.split('-')[1];BY_ID.set(id,i);if(id.length===4)BY_ID.set(id.slice(0,3),i)}});
+OCR.setCodes(ALL_CODES);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function showGame(v){const box=$('game'),sg=$('sugg');sg.hidden=true;sg.innerHTML='';
+ if(v.includes('?')&&/^DMG-[A-Z0-9?]{2,4}-[A-Z?]{3}$/.test(v)){const re=new RegExp('^'+v.replace(/\?/g,'[A-Z0-9]')+'$'),m=ALL_CODES.filter(c=>re.test(c));
+  if(m.length&&m.length<=8){sg.innerHTML=m.map(c=>`<button class="btn" data-c="${c}">${c}</button>`).join('');sg.hidden=false}}
+ const i=gameIndex(v),exact=BY_CODE.has(v);
+ if(i===undefined){box.innerHTML=CODE_RE.test(v)?'<b>Not in your list</b><div class="sm">No game uses this code. Check it against the label.</div>':v?'<b class="ph">No game yet</b><div class="sm">Format: DMG-XX-YYY or DMG-XXX-YYY</div>':'<b class="ph">No game yet</b><div class="sm">Shown once the label code is read</div>';return}
+ const g=GAMES[i],reg=REGIONS[v.split('-').pop()];
+ box.innerHTML=`<b>${esc(g[0])}</b><div class="sm">${[g[2],reg||v.split('-').pop(),exact?'':'this region variant is not in your list'].filter(Boolean).map(esc).join(' · ')}</div>`}
+// Short note in the game card (reading progress, problems).
+const note=(t,d='')=>{$('game').innerHTML=`<b class="ph">${esc(t)}</b><div class="sm">${esc(d)||'&nbsp;'}</div>`};
+$('sugg').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b)return;$('code').value=b.dataset.c;manual=true;codeChanged()});
+// Everything written into the saved photo: caption for Photos search, title, keywords, and app data to rebuild the collection later.
+function photoMeta(code){const i=gameIndex(code),g=i===undefined?null:GAMES[i],sfx=code.split('-').pop(),reg=REGIONS[sfx]||sfx,id=code.split('-')[1]||'';
+ const title=g?g[0]:code,year=g?String(g[2]):'';
+ return {caption:[g&&g[0],code,g&&reg,year].filter(Boolean).join(' · '),title,
+  keywords:['Game Boy','DMG',code,...(g?[reg,year]:[])].filter(Boolean),
+  data:{Code:code,GameID:id,Title:g?g[0]:'',Region:sfx,RegionName:REGIONS[sfx]||'',Year:year,Rotation:String(rot),
+   Corners:quad.map(p=>[+(p[0]/src.width).toFixed(4),+(p[1]/src.height).toFixed(4)]),Saved:new Date().toISOString()}}}
+function gameIndex(v){let i=BY_CODE.get(v);if(i===undefined&&CODE_RE.test(v)){const id=v.split('-')[1];i=BY_ID.get(id);if(i===undefined&&id.length===4)i=BY_ID.get(id.slice(0,3))}return i}
+const CODE_RE=/^DMG-[A-Z0-9]{2,4}-[A-Z]{3}$/;
+const fileName=()=>{const v=$('code').value.trim().toUpperCase().replace(/[^A-Z0-9-]/g,'_');return (v||'cart')+'.jpg'};
+function codeChanged(){saveState('');const v=$('code').value.trim().toUpperCase();showGame(v);$('code').classList.toggle('bad',!!v&&!CODE_RE.test(v));
+ $('saveMsg').textContent=dl?fileName():'Saving unavailable here'}
+$('code').addEventListener('input',codeChanged);
+// Tapping anywhere outside the code field closes the keyboard.
+document.addEventListener('pointerdown',e=>{const a=document.activeElement;if(a&&a.tagName==='INPUT'&&e.target!==a)a.blur()});
+$('save').addEventListener('click',async()=>{if(!dl||!lastBlob)return;
+ try{const code=$('code').value.trim().toUpperCase(),data=code?await tagJpeg(lastBlob,photoMeta(code)).catch(()=>lastBlob):lastBlob;await dl.save({filename:fileName(),data});saveState('saved')}
+ catch(e){saveState(e&&e.code==='declined'?'':'failed')}});
+// The Save button itself shows the result, so nothing else on the page moves.
+let saveTimer=0;function saveState(st){const b=$('save');clearTimeout(saveTimer);b.classList.toggle('saved',st==='saved');
+ b.textContent=st==='saved'?'Saved ✓':st==='failed'?'Not saved':'Save image';if(st==='failed')saveTimer=setTimeout(()=>saveState(''),2500)}
+
+// Built-in code reader: straighten at higher resolution, greyscale, then OCR.read (see OCR START).
+// Reads by itself after every new crop (new photo, corner moved, flip, reset), unless the code was typed or picked by hand.
+// It waits until the code box is on screen, and the reading runs in a background worker so the page never freezes.
+let manual=false,rcT=0,pending=false,codeVisible=false,ocrW=null,ocrJob=0;
+function scheduleRead(){pending=true;clearTimeout(rcT);if(codeVisible)rcT=setTimeout(readCode,350)}
+new IntersectionObserver(es=>{codeVisible=es.some(e=>e.isIntersecting);if(codeVisible&&pending)scheduleRead()},{threshold:.4}).observe($('codeBox'));
+$('code').addEventListener('input',()=>{manual=!!$('code').value.trim()});
+// The worker gets the photo's pixels once per photo, then does the straightening, greyscale and OCR itself:
+// the page only sends the 4 corners, so nothing heavy runs on the main thread.
+let srcVer=0,sentVer=-1;
+function ocrWorker(){if(ocrW)return ocrW;try{
+ const js=`const DMG_GLYPHS=${JSON.stringify(DMG_GLYPHS)};const OCR=(${makeOCR.toString()})();OCR.setCodes(${JSON.stringify(ALL_CODES)});${homog.toString()}${warp.toString()}let S=null;
+onmessage=e=>{const d=e.data;if(d.type==='src'){S={p:new Uint8ClampedArray(d.buf),w:d.w,h:d.h};return}
+ let r=null;try{const W=1000,H=1160,px=new Uint8ClampedArray(W*H*4);warp(S.p,S.w,S.h,d.Q,W,H,px,true);const g=new Uint8Array(W*H);
+  for(let i=0;i<W*H;i++)g[i]=(px[i*4]*77+px[i*4+1]*150+px[i*4+2]*29)>>8;r=OCR.read(g,W,H)}catch(x){}
+ postMessage({id:d.id,r:r&&{code:r.code,known:!!r.known}})}`;
+ ocrW=new Worker(URL.createObjectURL(new Blob([js],{type:'text/javascript'})));sentVer=-1}catch(e){ocrW=null}return ocrW}
+function readCode(){if(!quad||manual||!pending)return;if(reading)return;pending=false;reading=true;note('Reading the code…');
+ const Q=[0,1,2,3].map(i=>quad[(i+rot)%4]),job=++ocrJob,wk=ocrWorker();
+ if(wk){wk.onmessage=e=>{if(e.data.id===job)done(e.data.r)};wk.onerror=()=>{ocrW=null;done(null,true)};
+  if(sentVer!==srcVer){const buf=srcData.slice().buffer;wk.postMessage({type:'src',buf,w:src.width,h:src.height},[buf]);sentVer=srcVer}
+  wk.postMessage({type:'read',id:job,Q})}
+ else setTimeout(()=>{let r=null;try{const W=1000,H=1160,px=new Uint8ClampedArray(W*H*4);warp(srcData,src.width,src.height,Q,W,H,px,true);const g=new Uint8Array(W*H);
+  for(let i=0;i<W*H;i++)g[i]=(px[i*4]*77+px[i*4+1]*150+px[i*4+2]*29)>>8;r=OCR.read(g,W,H)}catch(e){}done(r)},30);
+ function done(r,err){reading=false;
+  if(manual)codeChanged();
+  else if(err)note('Could not read the code','Type it in by hand');
+  else if(!r)note('Code not found','Try a sharper, closer photo, or type it in');
+  else{$('code').value=r.code;codeChanged();if(r.code.includes('?'))note('Partly read','Pick a match below or fill in the ? by hand')}
+  if(pending)scheduleRead()}}
+$('flip').addEventListener('click',()=>{rot=(rot+3)%4;render()});
+}
+</script>
+</body>
+</html>
