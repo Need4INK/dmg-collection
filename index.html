@@ -131,7 +131,8 @@ body{display:block}
 .lnk{background:none;border:0;color:#a9a4b0;font:12px Inter,system-ui,sans-serif;padding:6px 0 6px 12px;margin:-6px 0}
 .gwrap{flex:1;min-height:0;position:relative}.gwrap canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .gtip{position:absolute;z-index:2;left:0;top:0;pointer-events:none;transform:translate(-50%,-100%);max-width:100%;background:#2a2730;color:#fff;font:600 13px/1.2 Inter,system-ui,sans-serif;padding:6px 10px;border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 14px rgba(0,0,0,.5)}.gtip[hidden]{display:none}
-.gloupe{position:absolute;z-index:2;left:0;top:0;width:100px;height:100px;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);background:#1c1a20;box-shadow:0 0 0 3px #7c7482,0 6px 18px rgba(0,0,0,.6)}.gloupe[hidden]{display:none}
+.gloupe{position:absolute;z-index:2;left:0;top:0;width:124px;height:92px;border-radius:44px;pointer-events:none;transform:translate(-50%,-50%);background:#1c1a20;box-shadow:0 0 0 1px rgba(255,255,255,.14),0 10px 28px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.4)}
+.app{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.app input{-webkit-user-select:text;user-select:text}.gloupe[hidden]{display:none}
 .recent{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .rc{display:flex;flex-direction:column;gap:4px;background:none;border:0;padding:0;color:#a9a4b0;font:9px/1.2 Inter,system-ui,sans-serif;text-align:left}
 .rc span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:11px}
@@ -847,27 +848,32 @@ function gridAt(e){if(!GG)return -1;const r=$('hGrid').getBoundingClientRect(),x
  if(x<-M||y<-M||x>=GG.cw+M||y>=GG.ch+M)return -1;const st=GG.s+GG.g,rows=Math.ceil(TOTAL/GG.cols);
  const col=Math.max(0,Math.min(GG.cols-1,Math.floor(x/st))),row=Math.max(0,Math.min(rows-1,Math.floor(y/st))),i=row*GG.cols+col;
  return i<TOTAL?i:(y>=GG.ch?TOTAL-1:-1)}
-// Magnifying bubble above the finger: a plain zoom of the grid, the picked square in the middle (ringed white), the title above it.
-const LP=100,LN=5; // bubble size (px), squares across
-function drawLoupe(i){const cv=$('hLoupe'),src=$('hGrid'),d=window.devicePixelRatio||1;if(cv.width!==LP*d){cv.width=cv.height=LP*d}
+// Glass magnifier above the finger (like the iOS one): a plain zoom of the grid, the picked square in the middle (ringed white), the title above it.
+const LW=124,LH=92,LN=6.5,LR=44; // glass bubble size (px), squares across, corner radius
+function drawLoupe(i){const cv=$('hLoupe'),src=$('hGrid'),d=window.devicePixelRatio||1;if(cv.width!==LW*d){cv.width=LW*d;cv.height=LH*d}
  const c=cv.getContext('2d');c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,cv.width,cv.height);c.imageSmoothingEnabled=false;
- const st=GG.s+GG.g,z=LP/(LN*st),cx=(i%GG.cols)*st+GG.s/2,cy=Math.floor(i/GG.cols)*st+GG.s/2; // zoom factor; centre of the picked square
- c.setTransform(d*z,0,0,d*z,d*(LP/2-cx*z),d*(LP/2-cy*z));c.drawImage(src,0,0,GG.cw,GG.ch);
- c.lineWidth=1/z*2;c.strokeStyle='#fff';const h=GG.s/2+GG.g/2;c.strokeRect(cx-h,cy-h,2*h,2*h)}
+ const st=GG.s+GG.g,z=LW/(LN*st),cx=(i%GG.cols)*st+GG.s/2,cy=Math.floor(i/GG.cols)*st+GG.s/2; // zoom factor; centre of the picked square
+ c.setTransform(d*z,0,0,d*z,d*(LW/2-cx*z),d*(LH/2-cy*z));c.drawImage(src,0,0,GG.cw,GG.ch);
+ c.lineWidth=2/z;c.strokeStyle='#fff';const h=GG.s/2+GG.g/2;c.strokeRect(cx-h,cy-h,2*h,2*h);
+ // glass: darker rim, soft sheen on top, thin light edge
+ c.setTransform(d,0,0,d,0,0);let g=c.createRadialGradient(LW/2,LH/2,LH*.3,LW/2,LH/2,LW*.62);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.45)');c.fillStyle=g;c.fillRect(0,0,LW,LH);
+ g=c.createLinearGradient(0,0,0,LH*.5);g.addColorStop(0,'rgba(255,255,255,.16)');g.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=g;c.fillRect(0,0,LW,LH*.5);
+ c.beginPath();c.roundRect(.75,.75,LW-1.5,LH-1.5,LR);c.lineWidth=1.5;c.strokeStyle='rgba(255,255,255,.28)';c.stroke()}
 function gridHi(i){if(i===hHi)return;hHi=i;const tip=$('hTip'),lp=$('hLoupe');if(i<0){tip.hidden=lp.hidden=true;return}
  tip.textContent=GAMES[i][0];tip.hidden=lp.hidden=false;drawLoupe(i);
  const w=$('hWrap'),cv=$('hGrid'),wr=w.getBoundingClientRect(),cr=cv.getBoundingClientRect(),st=GG.s+GG.g;
  const sx=cr.left-wr.left+(i%GG.cols)*st+GG.s/2,sy=cr.top-wr.top+Math.floor(i/GG.cols)*st+GG.s/2,tw=tip.offsetWidth,th=tip.offsetHeight;
  const minTop=8-wr.top+th+8; // keep bubble and title on screen
- let ly=sy-30-LP/2;if(ly-LP/2<minTop)ly=sy+30+LP/2+th+8; // above the finger; below it if there's no room
- const lx=Math.max(LP/2+4,Math.min(wr.width-LP/2-4,sx));lp.style.left=lx+'px';lp.style.top=ly+'px';
- tip.style.left=Math.max(tw/2,Math.min(wr.width-tw/2,sx))+'px';tip.style.top=(ly-LP/2-8)+'px'}
+ let ly=sy-34-LH/2;if(ly-LH/2<minTop)ly=sy+34+LH/2+th+8; // above the finger; below it if there's no room
+ const lx=Math.max(LW/2+4,Math.min(wr.width-LW/2-4,sx));lp.style.left=lx+'px';lp.style.top=ly+'px';
+ tip.style.left=Math.max(tw/2,Math.min(wr.width-tw/2,sx))+'px';tip.style.top=(ly-LH/2-8)+'px'}
 const hCv=$('hGrid');
 hCv.addEventListener('pointerdown',e=>{hDown=true;try{hCv.setPointerCapture(e.pointerId)}catch(_){}gridHi(gridAt(e))});
 hCv.addEventListener('pointermove',e=>{if(hDown)gridHi(gridAt(e))});
 hCv.addEventListener('pointerup',e=>{if(!hDown)return;hDown=false;const i=gridAt(e);gridHi(-1);if(i>=0)openGame(i)});
 hCv.addEventListener('pointercancel',()=>{hDown=false;gridHi(-1)});
 hCv.addEventListener('contextmenu',e=>e.preventDefault());
+hCv.addEventListener('touchstart',e=>e.preventDefault(),{passive:false}); // no iOS long-press selection or magnifier over the grid
 new ResizeObserver(()=>{if(cur==='home')drawGrid()}).observe($('hWrap'));
 
 // ---- Catalog ----
