@@ -131,6 +131,7 @@ body{display:block}
 .lnk{background:none;border:0;color:#a9a4b0;font:12px Inter,system-ui,sans-serif;padding:6px 0 6px 12px;margin:-6px 0}
 .gwrap{flex:1;min-height:0;position:relative}.gwrap canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .gtip{position:absolute;z-index:2;left:0;top:0;pointer-events:none;transform:translate(-50%,-100%);max-width:100%;background:#2a2730;color:#fff;font:600 13px/1.2 Inter,system-ui,sans-serif;padding:6px 10px;border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 14px rgba(0,0,0,.5)}.gtip[hidden]{display:none}
+.gloupe{position:absolute;z-index:2;left:0;top:0;width:100px;height:100px;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);background:#1c1a20;box-shadow:0 0 0 3px #7c7482,0 6px 18px rgba(0,0,0,.6)}.gloupe[hidden]{display:none}
 .recent{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .rc{display:flex;flex-direction:column;gap:4px;background:none;border:0;padding:0;color:#a9a4b0;font:9px/1.2 Inter,system-ui,sans-serif;text-align:left}
 .rc span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:11px}
@@ -204,7 +205,7 @@ body{display:block}
   </div>
   <div class="card grow">
     <div class="ch"><span>Every game, A → Z</span><span>1 square = 1 game</span></div>
-    <div class="gwrap" id="hWrap"><canvas id="hGrid" role="img" aria-label="Owned and missing games"></canvas><b class="gtip" id="hTip" hidden></b></div>
+    <div class="gwrap" id="hWrap"><canvas id="hGrid" role="img" aria-label="Owned and missing games"></canvas><canvas class="gloupe" id="hLoupe" hidden></canvas><b class="gtip" id="hTip" hidden></b></div>
   </div>
   <div class="card">
     <div class="ch"><span>Recently added</span><button class="lnk" id="hAll">see all</button></div>
@@ -832,7 +833,7 @@ function drawHome(){const own=OWN_GAMES.size,p=TOTAL?Math.round(own/TOTAL*100):0
  box.innerHTML=h;loadThumbs(box)}
 $('hRecent').addEventListener('click',e=>{const b=e.target.closest('[data-g]');if(b)openGame(+b.dataset.g)});
 // Every game as one square, A → Z: green when owned. Squares are sized to fill the card.
-// Press and slide over the squares: the game under the finger is named above it; letting go opens it.
+// Press and slide over the squares: a bubble magnifies the squares under the finger and names the game; letting go opens it.
 let GG=null,hHi=-1,hDown=false;
 function drawGrid(){const w=$('hWrap'),cv=$('hGrid'),W=w.clientWidth,H=w.clientHeight;if(!W||!H)return;
  const cols=27,rows=Math.ceil(TOTAL/cols),g=2,s=Math.max(3,Math.floor(Math.min((W-(cols-1)*g)/cols,(H-(rows-1)*g)/rows)));
@@ -843,11 +844,23 @@ function drawGrid(){const w=$('hWrap'),cv=$('hGrid'),W=w.clientWidth,H=w.clientH
  if(hHi>=0){const x=(hHi%cols)*(s+g),y=Math.floor(hHi/cols)*(s+g);c.fillStyle='#fff';c.fillRect(x,y,s,s)}}
 function gridAt(e){if(!GG)return -1;const r=$('hGrid').getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
  if(x<0||y<0||x>=GG.cw||y>=GG.ch)return -1;const st=GG.s+GG.g,i=Math.floor(y/st)*GG.cols+Math.min(GG.cols-1,Math.floor(x/st));return i<TOTAL?i:-1}
-function gridHi(i){if(i===hHi)return;hHi=i;drawGrid();const tip=$('hTip');if(i<0){tip.hidden=true;return}
- tip.textContent=GAMES[i][0];tip.hidden=false;const w=$('hWrap'),cv=$('hGrid'),wr=w.getBoundingClientRect(),cr=cv.getBoundingClientRect(),st=GG.s+GG.g;
- const sx=cr.left-wr.left+(i%GG.cols)*st+GG.s/2,sy=cr.top-wr.top+Math.floor(i/GG.cols)*st,tw=tip.offsetWidth,th=tip.offsetHeight;
- const top=sy-24>=th?sy-24:sy+GG.s+24+th; // above the finger, below it on the top rows
- tip.style.left=Math.max(tw/2,Math.min(wr.width-tw/2,sx))+'px';tip.style.top=top+'px'}
+// Magnifying bubble above the finger (5 squares across, the picked one ringed white) with the title above it.
+const LP=100,LN=5;
+function drawLoupe(i){const cv=$('hLoupe'),d=window.devicePixelRatio||1;if(cv.width!==LP*d){cv.width=cv.height=LP*d}
+ const c=cv.getContext('2d');c.setTransform(d,0,0,d,0,0);c.clearRect(0,0,LP,LP);c.save();c.beginPath();c.arc(LP/2,LP/2,LP/2,0,7);c.clip();
+ const P=LP/LN,q=P*GG.s/(GG.s+GG.g),col=i%GG.cols,row=Math.floor(i/GG.cols);
+ for(let dr=-3;dr<=3;dr++)for(let dc=-3;dc<=3;dc++){const cc=col+dc,k=(row+dr)*GG.cols+cc;if(cc<0||cc>=GG.cols||k<0||k>=TOTAL)continue;
+  const x=LP/2+dc*P-q/2,y=LP/2+dr*P-q/2;c.fillStyle=OWN_GAMES.has(k)?'#9bbc0f':'#2e2b34';c.fillRect(x,y,q,q);
+  if(!dr&&!dc){c.strokeStyle='#fff';c.lineWidth=3;c.strokeRect(x-1.5,y-1.5,q+3,q+3)}}
+ c.restore()}
+function gridHi(i){if(i===hHi)return;hHi=i;drawGrid();const tip=$('hTip'),lp=$('hLoupe');if(i<0){tip.hidden=lp.hidden=true;return}
+ tip.textContent=GAMES[i][0];tip.hidden=lp.hidden=false;drawLoupe(i);
+ const w=$('hWrap'),cv=$('hGrid'),wr=w.getBoundingClientRect(),cr=cv.getBoundingClientRect(),st=GG.s+GG.g;
+ const sx=cr.left-wr.left+(i%GG.cols)*st+GG.s/2,sy=cr.top-wr.top+Math.floor(i/GG.cols)*st+GG.s/2,tw=tip.offsetWidth,th=tip.offsetHeight;
+ const minTop=8-wr.top+th+8; // keep bubble and title on screen
+ let ly=sy-30-LP/2;if(ly-LP/2<minTop)ly=sy+30+LP/2+th+8; // above the finger; below it if there's no room
+ const lx=Math.max(LP/2+4,Math.min(wr.width-LP/2-4,sx));lp.style.left=lx+'px';lp.style.top=ly+'px';
+ tip.style.left=Math.max(tw/2,Math.min(wr.width-tw/2,sx))+'px';tip.style.top=(ly-LP/2-8)+'px'}
 const hCv=$('hGrid');
 hCv.addEventListener('pointerdown',e=>{hDown=true;try{hCv.setPointerCapture(e.pointerId)}catch(_){}gridHi(gridAt(e))});
 hCv.addEventListener('pointermove',e=>{if(hDown)gridHi(gridAt(e))});
