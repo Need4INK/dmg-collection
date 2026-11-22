@@ -129,7 +129,8 @@ body{display:block}
 .card.grow{flex:1;min-height:0}
 .ch{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#a9a4b0}
 .lnk{background:none;border:0;color:#a9a4b0;font:12px Inter,system-ui,sans-serif;padding:6px 0 6px 12px;margin:-6px 0}
-.gwrap{flex:1;min-height:0;position:relative}.gwrap canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+.gwrap{flex:1;min-height:0;position:relative}.gwrap canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.gtip{position:absolute;z-index:2;left:0;top:0;pointer-events:none;transform:translate(-50%,-100%);max-width:100%;background:#2a2730;color:#fff;font:600 13px/1.2 Inter,system-ui,sans-serif;padding:6px 10px;border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 14px rgba(0,0,0,.5)}.gtip[hidden]{display:none}
 .recent{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .rc{display:flex;flex-direction:column;gap:4px;background:none;border:0;padding:0;color:#a9a4b0;font:9px/1.2 Inter,system-ui,sans-serif;text-align:left}
 .rc span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:11px}
@@ -203,7 +204,7 @@ body{display:block}
   </div>
   <div class="card grow">
     <div class="ch"><span>Every game, A → Z</span><span>1 square = 1 game</span></div>
-    <div class="gwrap" id="hWrap"><canvas id="hGrid" role="img" aria-label="Owned and missing games"></canvas></div>
+    <div class="gwrap" id="hWrap"><canvas id="hGrid" role="img" aria-label="Owned and missing games"></canvas><b class="gtip" id="hTip" hidden></b></div>
   </div>
   <div class="card">
     <div class="ch"><span>Recently added</span><button class="lnk" id="hAll">see all</button></div>
@@ -790,7 +791,13 @@ async function thumbURL(code){if(THUMB.has(code))return THUMB.get(code);const r=
 function cartHTML(i,cls='',dot){const own=OWN_GAMES.has(i),pc=own&&photoCode(i);
  return own?`<span class="cw"><span class="cart"><img alt="" ${pc?`data-c="${pc}" src="${PLACE}"`:`src="${PLACE}"`}></span>${dot?((n=>n>1?`<i class="dot">${n}</i>`:'<i class="dot"></i>')((OWN_GAMES.get(i)||[]).length)):''}</span>`:'<span class="ghost"></span>'}
 // Photos load when their tile scrolls into view.
-const lazy=new IntersectionObserver(es=>{for(const e of es){if(!e.isIntersecting)continue;const im=e.target;lazy.unobserve(im);thumbURL(im.dataset.c).then(u=>{im.src=u})}},{rootMargin:'300px'});
+const lazy=new IntersectionObserver(es=>{for(const e of es){if(!e.isIntersecting)continue;const im=e.target;lazy.unobserve(im);
+ thumbURL(im.dataset.c).then(u=>{if(!im.isConnected)return;im.src=u;if($('cGrid').contains(im))far.observe(im)})}},{rootMargin:'300px'});
+// Catalog photos more than ~3 screens away are let go (less memory) and load again when scrolled back to.
+const far=new IntersectionObserver(es=>{for(const e of es){const im=e.target;
+ if(!im.isConnected){far.unobserve(im);continue}
+ if(e.isIntersecting||!e.rootBounds||!e.rootBounds.height||cur!=='cat'||im.closest('[hidden]'))continue; // catalog hidden or tile filtered out: keep
+ far.unobserve(im);im.src=PLACE;const c=im.dataset.c;if(THUMB.has(c)){URL.revokeObjectURL(THUMB.get(c));THUMB.delete(c)}lazy.observe(im)}},{root:$('cGrid'),rootMargin:'300% 0px'});
 function loadThumbs(root){root.querySelectorAll('img[data-c]').forEach(im=>lazy.observe(im))}
 
 // ---- navigation: one screen at a time; the round button opens the scanner (+) and closes it (×) ----
@@ -825,17 +832,34 @@ function drawHome(){const own=OWN_GAMES.size,p=TOTAL?Math.round(own/TOTAL*100):0
  box.innerHTML=h;loadThumbs(box)}
 $('hRecent').addEventListener('click',e=>{const b=e.target.closest('[data-g]');if(b)openGame(+b.dataset.g)});
 // Every game as one square, A → Z: green when owned. Squares are sized to fill the card.
+// Press and slide over the squares: the game under the finger is named above it; letting go opens it.
+let GG=null,hHi=-1,hDown=false;
 function drawGrid(){const w=$('hWrap'),cv=$('hGrid'),W=w.clientWidth,H=w.clientHeight;if(!W||!H)return;
  const cols=27,rows=Math.ceil(TOTAL/cols),g=2,s=Math.max(3,Math.floor(Math.min((W-(cols-1)*g)/cols,(H-(rows-1)*g)/rows)));
- const cw=cols*s+(cols-1)*g,ch=rows*s+(rows-1)*g,d=window.devicePixelRatio||1;cv.style.width=cw+'px';cv.style.height=ch+'px';cv.width=cw*d;cv.height=ch*d;
- const c=cv.getContext('2d');c.setTransform(d,0,0,d,0,0);
- for(let i=0;i<TOTAL;i++){const x=(i%cols)*(s+g),y=Math.floor(i/cols)*(s+g);c.fillStyle=OWN_GAMES.has(i)?'#9bbc0f':'#2e2b34';c.fillRect(x,y,s,s)}}
+ const cw=cols*s+(cols-1)*g,ch=rows*s+(rows-1)*g,d=window.devicePixelRatio||1;
+ if(!GG||GG.cw!==cw||GG.ch!==ch){cv.style.width=cw+'px';cv.style.height=ch+'px';cv.width=cw*d;cv.height=ch*d}GG={cols,s,g,cw,ch};
+ const c=cv.getContext('2d');c.setTransform(d,0,0,d,0,0);c.clearRect(0,0,cw,ch);
+ for(let i=0;i<TOTAL;i++){const x=(i%cols)*(s+g),y=Math.floor(i/cols)*(s+g);c.fillStyle=OWN_GAMES.has(i)?'#9bbc0f':'#2e2b34';c.fillRect(x,y,s,s)}
+ if(hHi>=0){const x=(hHi%cols)*(s+g),y=Math.floor(hHi/cols)*(s+g);c.fillStyle='#fff';c.fillRect(x,y,s,s)}}
+function gridAt(e){if(!GG)return -1;const r=$('hGrid').getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+ if(x<0||y<0||x>=GG.cw||y>=GG.ch)return -1;const st=GG.s+GG.g,i=Math.floor(y/st)*GG.cols+Math.min(GG.cols-1,Math.floor(x/st));return i<TOTAL?i:-1}
+function gridHi(i){if(i===hHi)return;hHi=i;drawGrid();const tip=$('hTip');if(i<0){tip.hidden=true;return}
+ tip.textContent=GAMES[i][0];tip.hidden=false;const w=$('hWrap'),cv=$('hGrid'),wr=w.getBoundingClientRect(),cr=cv.getBoundingClientRect(),st=GG.s+GG.g;
+ const sx=cr.left-wr.left+(i%GG.cols)*st+GG.s/2,sy=cr.top-wr.top+Math.floor(i/GG.cols)*st,tw=tip.offsetWidth,th=tip.offsetHeight;
+ const top=sy-24>=th?sy-24:sy+GG.s+24+th; // above the finger, below it on the top rows
+ tip.style.left=Math.max(tw/2,Math.min(wr.width-tw/2,sx))+'px';tip.style.top=top+'px'}
+const hCv=$('hGrid');
+hCv.addEventListener('pointerdown',e=>{hDown=true;try{hCv.setPointerCapture(e.pointerId)}catch(_){}gridHi(gridAt(e))});
+hCv.addEventListener('pointermove',e=>{if(hDown)gridHi(gridAt(e))});
+hCv.addEventListener('pointerup',e=>{if(!hDown)return;hDown=false;const i=gridAt(e);gridHi(-1);if(i>=0)openGame(i)});
+hCv.addEventListener('pointercancel',()=>{hDown=false;gridHi(-1)});
+hCv.addEventListener('contextmenu',e=>e.preventDefault());
 new ResizeObserver(()=>{if(cur==='home')drawGrid()}).observe($('hWrap'));
 
 // ---- Catalog ----
 let built=false;
 function buildCat(){const g=$('cGrid');g.innerHTML=GAMES.map((x,i)=>`<button class="tile" data-g="${i}"></button>`).join('');built=true}
-function fillTile(t){const i=+t.dataset.g,own=OWN_GAMES.has(i);t.classList.toggle('miss',!own);
+function fillTile(t){const i=+t.dataset.g,own=OWN_GAMES.has(i);t.querySelectorAll('img').forEach(im=>{lazy.unobserve(im);far.unobserve(im)});t.classList.toggle('miss',!own);
  t.innerHTML=cartHTML(i,'',true)+`<span class="nm">${esc(GAMES[i][0])}</span>`}
 function drawCat(){if(!built)buildCat();const g=$('cGrid');
  if(dirty){g.querySelectorAll('.tile').forEach(fillTile);dirty=false;loadThumbs(g)}
