@@ -716,18 +716,32 @@ async function tagJpeg(blob,m){const src=new Uint8Array(await blob.arrayBuffer()
  return new Blob([cat(src.slice(0,p),exif,xmp,iptc,src.slice(p))],{type:'image/jpeg'})}
 const REGIONS={USA:'North America',CAN:'Canada',EUR:'Europe',UKV:'United Kingdom',NOE:'Germany / Austria',FRG:'Germany',FRA:'France',ESP:'Spain',ITA:'Italy',HOL:'Netherlands',SCN:'Scandinavia',AUS:'Australia',ASI:'Asia',JPN:'Japan'};
 // Master list from the collection spreadsheet: [names, codes, first release year]
-// Once the game list is edited on the phone (Edit game / Add new cart / Import), the phone keeps its own copy (dmgGames) and uses it instead.
-const GAMES=DMG_GAMES;
-const okGames=l=>Array.isArray(l)&&l.length&&l.every(g=>Array.isArray(g)&&typeof g[0]==='string'&&Array.isArray(g[1])&&g[1].length);
-try{const l=JSON.parse(localStorage.getItem('dmgGames')||'null');if(okGames(l))GAMES.splice(0,GAMES.length,...l)}catch(e){}
+// Game list = built-in list (data.js) + my changes on top (dmgMods), so fixes to the built-in list still arrive and my edits win.
+// dmgMods: {e:{key: [name,codes,year] | null (deleted)}, n:[{u, g:[name,codes,year]}] (games I added)}. key = game ID of a built-in game's first code.
+const BASE=DMG_GAMES.map(g=>[g[0],g[1].slice(),g[2]]),GAMES=DMG_GAMES,keyOf=g=>g[1][0].split('-')[1];
+const okGame=g=>Array.isArray(g)&&typeof g[0]==='string'&&Array.isArray(g[1])&&g[1].length&&g[1].every(c=>typeof c==='string');
+const okGames=l=>Array.isArray(l)&&l.length&&l.every(okGame);
+let MODS={e:{},n:[]};
+function okMods(m){return m&&typeof m==='object'&&m.e&&typeof m.e==='object'&&Array.isArray(m.n)&&Object.values(m.e).every(v=>v===null||okGame(v))&&m.n.every(x=>x&&okGame(x.g))}
+// A full list (v66 phone copy or backup) → the changes it makes to the built-in list.
+function modsFrom(list){const m={e:{},n:[]},byKey=new Map(BASE.map(g=>[keyOf(g),g])),seen=new Set();let u=Date.now();
+ for(const g of list){const k=keyOf(g),b=byKey.get(k);if(b&&!seen.has(k)){seen.add(k);if(JSON.stringify(b)!==JSON.stringify([g[0],g[1],g[2]]))m.e[k]=[g[0],g[1].slice(),g[2]]}else m.n.push({u:u++,g:[g[0],g[1].slice(),g[2]]})}
+ for(const k of byKey.keys())if(!seen.has(k))m.e[k]=null;return m}
+const at=(l,g)=>{const t=g[0].toLowerCase();let k=l.findIndex(x=>x[0].toLowerCase()>t);if(k<0)k=l.length;l.splice(k,0,g)};
+function buildGames(){const mine=[],list=[];
+ for(const b of BASE){const k=keyOf(b);if(k in MODS.e){const v=MODS.e[k];if(v){const g=[v[0],v[1].slice(),v[2]];g.k=k;mine.push(g)}}else{const g=[b[0],b[1].slice(),b[2]];g.k=k;list.push(g)}}
+ for(const x of MODS.n){const g=[x.g[0],x.g[1].slice(),x.g[2]];g.u=x.u;mine.push(g)}
+ const used=new Set(mine.flatMap(g=>g[1])); // a code I use wins over the built-in game that also has it
+ const out=list.map(g=>{const c=g[1].filter(x=>!used.has(x));if(c.length===g[1].length)return g;const h=[g[0],c,g[2]];h.k=g.k;return h}).filter(g=>g[1].length);
+ for(const g of mine)at(out,g);GAMES.splice(0,GAMES.length,...out)}
+function saveMods(){try{localStorage.setItem('dmgMods',JSON.stringify(MODS))}catch(e){}}
+try{const m=JSON.parse(localStorage.getItem('dmgMods')||'null');if(okMods(m))MODS=m;else{const l=JSON.parse(localStorage.getItem('dmgGames')||'null');if(okGames(l)){MODS=modsFrom(l);saveMods()}}localStorage.removeItem('dmgGames')}catch(e){}
+buildGames();
 const BY_CODE=new Map(),BY_ID=new Map(),ALL_CODES=[];let TOTAL=0;
 function indexGames(){BY_CODE.clear();BY_ID.clear();ALL_CODES.length=0;TOTAL=GAMES.length;
  GAMES.forEach((g,i)=>{for(const c of g[1]){BY_CODE.set(c,i);ALL_CODES.push(c);const id=c.split('-')[1];BY_ID.set(id,i);if(id.length===4)BY_ID.set(id.slice(0,3),i)}});
  OCR.setCodes(ALL_CODES)}
 indexGames();
-function saveGames(){try{localStorage.setItem('dmgGames',JSON.stringify(GAMES))}catch(e){}}
-// A new or renamed game goes to its A → Z place; the rest keep their order.
-function placeGame(g){const t=g[0].toLowerCase();let k=GAMES.findIndex(x=>x[0].toLowerCase()>t);if(k<0)k=GAMES.length;GAMES.splice(k,0,g);return k}
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 // My collection: a list of owned codes, imported once from a .json file (New photo → Choose File)
 // and kept only on this phone. Nothing about anyone's collection is built into the app.
@@ -1021,7 +1035,7 @@ async function moveCode(a,b){if(ENG.has(a)){ENG.delete(a);ENG.add(b)}
  if(THUMB.has(a)){URL.revokeObjectURL(THUMB.get(a));THUMB.delete(a)}}
 async function dropCode(a){ENG.delete(a);try{localStorage.setItem('dmgRecent',JSON.stringify(recentList().filter(r=>r.c!==a)))}catch(e){}
  if(PHOTOS.has(a)){await idb('readwrite',st=>st.delete(a));PHOTOS.delete(a)}if(THUMB.has(a)){URL.revokeObjectURL(THUMB.get(a));THUMB.delete(a)}}
-function commitGames(owned){indexGames();setOwned(owned);saveGames();
+function commitGames(owned){saveMods();buildGames();indexGames();setOwned(owned);
  try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]));localStorage.setItem('dmgEnglish',JSON.stringify([...ENG]))}catch(e){}
  markEdit();built=false;dirty=true}
 // Save: checks the draft (name, 4-digit year, valid codes not used by another game), then applies it.
@@ -1034,10 +1048,11 @@ async function saveGame(){const old=gNew?null:GAMES[gIdx],t=$('gTi').value.trim(
  if(old)for(const c of old[1])if(!gRows.some(r=>r.o===c)){own.delete(c);await dropCode(c)}
  for(const r of gRows){const c=r.c.trim().toUpperCase();if(r.own){if(!own.has(c))added.push(c);own.add(c)}else own.delete(c)}
  for(const c of gForgot){await idb('readwrite',st=>st.delete(c));PHOTOS.delete(c);if(THUMB.has(c)){URL.revokeObjectURL(THUMB.get(c));THUMB.delete(c)}}
- if(old)GAMES.splice(gIdx,1);const g=[t,codes,+y],idx=placeGame(g);commitGames([...own]);addRecent(added);
+ const g=[t,codes,+y];let u=null;if(old&&old.k)MODS.e[old.k]=g;else if(old){const x=MODS.n.find(x=>x.u===old.u);if(x)x.g=g;u=old.u}else{u=Date.now();MODS.n.push({u,g})}
+ commitGames([...own]);addRecent(added);const idx=GAMES.findIndex(x=>old&&old.k?x.k===old.k:x.u===u);
  const sel=gSel&&codes.includes(gSel)?gSel:null;gNew=false;endEdit();gIdx=idx;gSel=sel||pickSel(idx);drawGame()}
 async function deleteGame(){const G=GAMES[gIdx];if(!G)return;const own=new Set(OWN_CODES);
- for(const c of G[1]){own.delete(c);await dropCode(c)}GAMES.splice(gIdx,1);commitGames([...own]);endEdit();gIdx=-1;back()}
+ for(const c of G[1]){own.delete(c);await dropCode(c)}if(G.k)MODS.e[G.k]=null;else MODS.n=MODS.n.filter(x=>x.u!==G.u);commitGames([...own]);endEdit();gIdx=-1;back()}
 $('gEdit').addEventListener('click',()=>{if(gEditing)return saveGame();if(GAMES[gIdx])startEdit(GAMES[gIdx])});
 // Not editing: tap a variant to show it. Editing: tick = owned, × = remove the row, fields edit name / year / codes.
 $('gVars').addEventListener('click',e=>{
@@ -1098,7 +1113,7 @@ async function drawBackup(msg){if(bkBusy)return;const job=++bkJob;bkPend=null;bk
  const keys=(await idb('readonly',s=>s.getAllKeys()))||[],recs=(await idb('readonly',s=>s.getAll()))||[],files=[],ph={};
  for(let k=0;k<keys.length;k++){if(job!==bkJob)return;const r=recs[k];if(!r||!r.full)continue;files.push({name:`photos/${keys[k]}.jpg`,data:new Uint8Array(await r.full.arrayBuffer())});ph[keys[k]]=r.t||0}
  if(job!==bkJob||cur!=='bk')return;
- files.unshift({name:'collection.json',data:new TextEncoder().encode(JSON.stringify({dmgdb:1,exported:new Date().toISOString(),games:GAMES,owned:[...OWN_CODES],recent:recentList(),english:[...ENG],photos:ph}))});
+ files.unshift({name:'collection.json',data:new TextEncoder().encode(JSON.stringify({dmgdb:1,exported:new Date().toISOString(),mods:MODS,games:GAMES,owned:[...OWN_CODES],recent:recentList(),english:[...ENG],photos:ph}))});
  bkZip=zipBlob(files);bkShow(OWN_CODES.size,files.length-1,bkZip.size,msg||bkStamp());$('bEx').disabled=false}
 $('bEx').addEventListener('click',async()=>{if(bkPend)return bkRestore();if(!bkZip)return;
  const name=`dmgdb-backup-${new Date().toISOString().slice(0,10)}.zip`,file=new File([bkZip],name,{type:'application/zip'});
@@ -1118,7 +1133,7 @@ async function bkRestore(){const {z,col,photos}=bkPend;bkPend=null;bkBusy=true;b
   for(let k=0;k<photos.length;k++){$('bT').textContent=`Importing ${k+1} / ${photos.length}`;const code=photos[k].split('/').pop().slice(0,-4).toUpperCase();
    try{const full=new Blob([await entryBytes(z.get(photos[k]))],{type:'image/jpeg'}),thumb=await thumbOf(full);
     await idb('readwrite',s=>s.put({full,thumb,tv:3,t:(col.photos||{})[code]||Date.now()},code));PHOTOS.add(code);n++}catch(e){}}
-  if(okGames(col.games)){GAMES.splice(0,GAMES.length,...col.games);indexGames();saveGames();built=false} // backups carry the game list too
+  {const m=okMods(col.mods)?col.mods:okGames(col.games)?modsFrom(col.games):null;if(m){MODS=m;saveMods();buildGames();indexGames();built=false}} // backups carry my game-list changes
   setOwned(col.owned);ENG.clear();(Array.isArray(col.english)?col.english:[]).forEach(c=>ENG.add(c));
   try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]));localStorage.setItem('dmgRecent',JSON.stringify(Array.isArray(col.recent)?col.recent.slice(-60):[]));localStorage.setItem('dmgEnglish',JSON.stringify([...ENG]))}catch(e){}
  }catch(e){}
