@@ -31,6 +31,8 @@ html{background:#18191c}
 *{box-sizing:border-box;min-width:0}
 body{margin:0;min-height:100vh;background:radial-gradient(120% 60% at 50% 0%,#26282d 0%,var(--bg) 70%) no-repeat,var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
 main{max-width:640px;margin:0 auto;padding:8px 16px 8px}
+/* The whole group sits centred on the screen, clear of the status bar. */
+body{display:flex;flex-direction:column;justify-content:center;min-height:100vh;min-height:100dvh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}main{width:100%}
 h1{font:600 clamp(30px,8vw,40px)/1.05 "Pixelify Sans",system-ui,sans-serif;margin:0 0 6px;text-wrap:balance}
 h2{font:600 20px/1.2 "Pixelify Sans",system-ui,sans-serif;margin:0 0 10px}
 .sub{color:var(--soft);margin:0 0 12px;font-size:15px}
