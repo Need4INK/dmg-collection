@@ -121,7 +121,7 @@ body{display:block}
 /* Catalog lens: same size as the cover's; back button and counter centred between the stripes and the search bar (same spot on Game and Backup). */
 #cat .bnr{align-items:flex-start;height:48px}#cat .btx,#bk .btx{margin-top:0}
 /* Home: text block at the row top, so the counter sits on the same line as the Catalog counter; label + carts line keep their spacing under it */
-#home .btx{align-self:flex-start}#home .big{height:38px;line-height:38px;white-space:nowrap}#hSub{white-space:nowrap}
+#home .btx{align-self:flex-start}#home .big{white-space:nowrap}#home .lbl{height:17px;line-height:17px;white-space:nowrap}#hSub{height:19px;line-height:19px;white-space:nowrap}
 /* Game lens: same size and spot; back button where it is on the Catalog; title + year where the counter is */
 /* Game lens: back button at the Catalog's spot; the title gets two reserved lines right after it, centred on it.
    The photo rides up over the lens, 8px under the title, its left edge on the variant checkboxes (14px in).
@@ -912,12 +912,12 @@ hCv.addEventListener('pointercancel',()=>{hDown=false;gridHi(-1)});
 hCv.addEventListener('contextmenu',e=>e.preventDefault());
 hCv.addEventListener('touchstart',e=>e.preventDefault(),{passive:false}); // no iOS long-press selection or magnifier over the grid
 new ResizeObserver(()=>{if(cur==='home')drawGrid()}).observe($('hWrap'));
-// Home lens: the counter and the carts line are fitted to the width of "GAMES OWNED" (counter by size, carts line by letter spacing).
-function fitHome(){const l=$('home').querySelector('.lbl'),b=$('home').querySelector('.big'),sm=b.querySelector('small'),sub=$('hSub');
+// Home lens: "GAMES OWNED" and the carts line are sized to the counter's width (the counter keeps the Catalog's size).
+function fitHome(){const b=$('home').querySelector('.big'),l=$('home').querySelector('.lbl'),sub=$('hSub');
  const tw=e=>{const r=document.createRange();r.selectNodeContents(e);return r.getBoundingClientRect().width}; // width of the text itself
- const W=tw(l)-parseFloat(getComputedStyle(l).letterSpacing||0);if(!W)return;
- for(let k=0,f=1;k<3;k++){b.style.fontSize=38*f+'px';sm.style.fontSize=18*f+'px';const w=tw(b);if(!w)return;f=Math.min(1,f*W/w)} // short counts (new collections) stay at full size
- sub.style.letterSpacing='0px';const n=sub.textContent.length;if(n>1)sub.style.letterSpacing=Math.max(-1,Math.min(1,(W-tw(sub))/(n-1)))+'px'}
+ const W=tw(b);if(!W)return;
+ for(let k=0,f=1;k<3;k++){l.style.fontSize=12*f+'px';l.style.letterSpacing=2*f+'px';const w=tw(l)-2*f;if(!w)return;f=Math.max(.7,Math.min(1.5,f*W/w))}
+ for(let k=0,f=1;k<3;k++){sub.style.fontSize=12*f+'px';const w=tw(sub);if(!w)return;f=Math.max(.7,Math.min(1.5,f*W/w))}}
 document.fonts&&document.fonts.ready.then(()=>{if(cur==='home')fitHome()});
 
 // ---- Catalog ----
