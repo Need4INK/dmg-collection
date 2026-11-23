@@ -819,12 +819,13 @@ function makeFit(REF,homog){
    return [cx+a*ux[0]*su+b*vy[0]*sv,cy+a*ux[1]*su+b*vy[1]*sv]})}
  function find(L,extra=[]){const k=L.k||1;const r=find0(L,extra.map(Q=>Q.map(p=>[p[0]*k,p[1]*k])));r.Q=r.Q.map(p=>[p[0]/k,p[1]/k]);return r}
  // two working sizes; the better-scoring fit wins (the search can miss at one grid and hit at the other)
- let WSS=((typeof process!=='undefined'&&process.env&&process.env.WSS)||'1024').split(',').map(Number);
- function findBest(g,w,h,extra=[]){RLOG=[];let best=null;RIDGE=0;for(const WS of WSS){const L=prep(g,w,h,WS),r=find(L,extra);r.L=L;
-   const k=L.k,jj=judge(L,r.Q.map(p=>[p[0]*k,p[1]*k]));if(!best||jj>best.jj){best=r;best.jj=jj}}
-  // ridge check on the winner only (it must not influence which way up the cart is)
-  RIDGE=1;RLOG=[];{const L=best.L,k=L.k;let Q=best.Q.map(p=>[p[0]*k,p[1]*k]);for(let i=0;i<2;i++)Q=snap(L,Q);best.Q=Q.map(p=>[p[0]/k,p[1]/k])}
-  best.rl=RLOG.slice();delete best.L;return best}
+ let WSS=((typeof process!=='undefined'&&process.env&&process.env.WSS)||'1024,832').split(',').map(Number);
+ // one working size: fit, judge score (before the ridge check), then the ridge check on this result.
+ // findBest = the better of the sizes; the phone runs findAt for each size in its own worker at the same time.
+ function findAt(g,w,h,extra,WS){RIDGE=0;const L=prep(g,w,h,WS),r=find(L,extra),k=L.k;
+  const jj=judge(L,r.Q.map(p=>[p[0]*k,p[1]*k]));RIDGE=1;RLOG=[];let Q=r.Q.map(p=>[p[0]*k,p[1]*k]);for(let i=0;i<2;i++)Q=snap(L,Q);
+  return {Q:Q.map(p=>[p[0]/k,p[1]/k]),jj,rl:RLOG.slice()}}
+ function findBest(g,w,h,extra=[]){let best=null;for(const WS of WSS){const r=findAt(g,w,h,extra,WS);if(!best||r.jj>best.jj)best=r}return best}
  function find0(L,extra=[]){let t0=Date.now();const cs=[];for(const lv of SLVS){SLV=lv;cs.push(...search(L,6))}tm('search',t0);t0=Date.now();
   for(const Q of extra)for(let k=0;k<4;k++)cs.push({v:0,Q:quarter(Q,k)});
   // pre-screen every start on a ~250px view, keep the best few
@@ -867,7 +868,7 @@ function makeFit(REF,homog){
  function simAt(L,Q){const li=L.findIndex(l=>Math.max(l.w,l.h)<=150),l=L[li],sc=2**li;const cx=Q.reduce((a,p)=>a+p[0],0)/4/sc,cy=Q.reduce((a,p)=>a+p[1],0)/4/sc;
   const a=Math.atan2(Q[1][1]-Q[0][1]+Q[2][1]-Q[3][1],Q[1][0]-Q[0][0]+Q[2][0]-Q[3][0]),s=(Math.hypot(Q[1][0]-Q[0][0],Q[1][1]-Q[0][1])+Math.hypot(Q[2][0]-Q[3][0],Q[2][1]-Q[3][1]))/2/sc;
   const ad=l.ax.map(Math.abs),bd=l.ay.map(Math.abs);let best=-9;for(const r of [1,2,3]){const D={w:l.w,h:l.h,dx:maxf(ad,l.w,l.h,r),dy:maxf(bd,l.w,l.h,r),mn:l.mn};best=Math.max(best,sScore(D,S2,FL,cx,cy,s,Math.cos(a),Math.sin(a)))}return best}
- return {findBest,setR:(v,t)=>{RIMW=v;if(t)RT0=t},setS:v=>{SLV=v},T,simAt,dirs,judge,quarter,lev:level,set:(l,u)=>{LAM=l;USEOFF=u},prep,coarse,search,refine,find,R,quadScore,P:{P150,P400,PALL}}}
+ return {findAt,WSS,findBest,setR:(v,t)=>{RIMW=v;if(t)RT0=t},setS:v=>{SLV=v},T,simAt,dirs,judge,quarter,lev:level,set:(l,u)=>{LAM=l;USEOFF=u},prep,coarse,search,refine,find,R,quadScore,P:{P150,P400,PALL}}}
 
 
 // CART FIT END
@@ -917,11 +918,12 @@ $('file').addEventListener('change',onPick);
 // worker: it searches the whole photo for the DMG cart reference (outline, notch, ridges, banner, label window, arrow),
 // fits the 4 corners, picks the upright orientation and snaps each side onto the cart's face edge (not its shadow or side wall).
 // Its corners come back as TL,TR,BR,BL of the upright cart. Corners moved by hand meanwhile are kept.
-let detW=null,detJob=0;
-function detWorker(){if(detW)return detW;try{
+let detW=[],detJob=0;
+// two workers: the matcher runs at its two working sizes at the same time (same result as one after the other, about half the wait)
+function detWorkers(){if(detW.length)return detW;try{
  const js=`${homog.toString()}const CART_REF=${JSON.stringify(CART_REF)};const FIT=(${makeFit.toString()})(CART_REF,homog);
-onmessage=e=>{const d=e.data;let r=null;try{r={Q:FIT.findBest(d.g,d.w,d.h,d.seeds).Q}}catch(x){}postMessage({id:d.id,r})}`;
- detW=new Worker(URL.createObjectURL(new Blob([js],{type:'text/javascript'})))}catch(e){detW=null}return detW}
+onmessage=e=>{const d=e.data;let r=null;try{r=FIT.findAt(d.g,d.w,d.h,d.seeds,d.ws)}catch(x){}postMessage({id:d.id,r})}`;
+ const url=URL.createObjectURL(new Blob([js],{type:'text/javascript'}));detW=[new Worker(url),new Worker(url)]}catch(e){detW=[]}return detW}
 function runDetect(){status('Looking for the cart…');setTimeout(()=>{
  const s=Math.min(1,MAXDET/Math.max(src.width,src.height)),w=Math.round(src.width*s),h=Math.round(src.height*s);
  const t=document.createElement('canvas');t.width=w;t.height=h;const tc=t.getContext('2d',{willReadFrequently:true});tc.drawImage(src,0,0,w,h);
@@ -935,11 +937,13 @@ function runDetect(){status('Looking for the cart…');setTimeout(()=>{
  const g=new Float32Array(W*H),cnt=new Float32Array(W*H),sw=src.width,sh=src.height,fx=W/sw,fy=H/sh;
  for(let y=0;y<sh;y++){const yy=Math.min(H-1,(y*fy)|0)*W;for(let x=0;x<sw;x++){const i=(y*sw+x)*4,j=yy+Math.min(W-1,(x*fx)|0);g[j]+=srcData[i]*.3+srcData[i+1]*.59+srcData[i+2]*.11;cnt[j]++}}
  for(let i=0;i<W*H;i++)g[i]/=cnt[i]||1;
- const seeds=q?[q.q.map(p=>[p[0]/s*s2,p[1]/s*s2])]:[],job=++detJob,mySrc=src,snap=JSON.stringify(quad),wk=detWorker();
+ const seeds=q?[q.q.map(p=>[p[0]/s*s2,p[1]/s*s2])]:[],job=++detJob,mySrc=src,snap=JSON.stringify(quad),wk=detWorkers();
  const done=r=>{if(job!==detJob||src!==mySrc||!r||!r.Q||JSON.stringify(quad)!==snap)return;
   quad=r.Q.map(p=>[p[0]/s2,p[1]/s2]);rot=0;userRot=codeRot=false;fitQuad();status('Cart found · drag corners · pinch to zoom',true);draw();render()};
- if(wk){wk.onmessage=e=>{if(e.data.id===job)done(e.data.r)};wk.onerror=()=>{detW=null};wk.postMessage({id:job,g,w:W,h:H,seeds},[g.buffer])}
- else setTimeout(()=>{let r=null;try{const F=window._FIT||(window._FIT=makeFit(CART_REF,homog)),r={Q:F.findBest(g,W,H,seeds).Q}}catch(e){}done(r)},30);
+ const sizes=[1024,832],got=[];let left=sizes.length;
+ const one=r=>{if(r&&r.Q)got.push(r);if(--left)return;let b=null;for(const x of got)if(!b||x.jj>b.jj)b=x;done(b)};
+ if(wk.length===2)wk.forEach((w,i)=>{w.onmessage=e=>{if(e.data.id===job)one(e.data.r)};w.onerror=()=>{detW=[];one(null)};w.postMessage({id:job,g:i?g.slice():g,w:W,h:H,seeds,ws:sizes[i]})});
+ else setTimeout(()=>{const F=window._FIT||(window._FIT=makeFit(CART_REF,homog));for(const ws of sizes){let r=null;try{r=F.findAt(g,W,H,seeds,ws)}catch(e){}one(r)}},30);
  },30);}
 // The cart is taller than wide: if the selection's longer side would come out horizontal, turn it a quarter (the code reader then fixes up/down).
 function longUp(){if(userRot||codeRot||!quad)return;const Q=[0,1,2,3].map(i=>quad[(i+rot)%4]);
