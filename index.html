@@ -266,7 +266,8 @@ html.rot.cw body{transform:translateX(100vw) rotate(90deg);--st:env(safe-area-in
 .gnote span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
 .gnote.empty span{color:#5f5a66}.gnote[hidden]{display:none}
 .gpop{position:absolute;z-index:5;padding:10px 12px;border-radius:12px;background:#3a3640;color:#fff;font:14px/19px Inter,system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.6);overflow-wrap:anywhere}.gpop[hidden]{display:none}
-#gv .gtx .sw{align-self:stretch;justify-content:space-between;text-align:left} /* English toggle's right edge = the note box's right edge */
+#gv .gtx .sw{align-self:stretch;justify-content:space-between;text-align:left;white-space:nowrap;font-size:12px} /* "English game" on one line */
+#gv .gtx{container-type:inline-size}@container (max-width:125px){#gv .gtx .sw{font-size:10.5px;gap:4px}} /* narrow column (iPhone SE) */ /* English toggle's right edge = the note box's right edge */
 .vr.nt{gap:10px;padding:0}.vr.nt>span{width:30px;flex:none;font:13px Inter,system-ui,sans-serif;color:#a9a4b0}
 .vr.nt label{flex:1;min-width:0;position:relative;display:flex}.vr.nt b{position:absolute;right:9px;top:50%;transform:translateY(-50%);font:500 11px Inter,system-ui,sans-serif;color:#6f6a76;pointer-events:none}
 .vr.nt input{flex:1;min-width:0;padding-right:58px!important;height:34px;border:1px solid #3b3e44;border-radius:8px;background:#18191c;color:#e8e6ea;font:14px Inter,system-ui,sans-serif;padding:0 10px}
@@ -415,7 +416,7 @@ html.rot.cw body{transform:translateX(100vw) rotate(90deg);--st:env(safe-area-in
     </div>
   </div>
   <div class="codebox" id="codeBox">
-    <div class="cbh"><label for="code">Label code</label><button class="sw" id="enS" role="switch" aria-checked="false" disabled>English<i></i></button></div>
+    <div class="cbh"><label for="code">Label code</label><button class="sw" id="enS" role="switch" aria-checked="false" disabled>English game<i></i></button></div>
     <div class="coderow"><input id="code" placeholder="DMG-…" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
     <div class="game" id="game"><b class="ph"><span class="flag dim" aria-hidden="true"></span>No game yet</b><div class="sm">Shown once the label code is read</div></div>
     <div class="sugg" id="sugg" hidden></div>
