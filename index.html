@@ -711,7 +711,7 @@ function makeFit(REF,homog){
    // scans: ridges start at 8% on both sides
    // left ridges start at 8%; on the right the notch step (4.5%) may be counted as the first groove, so it starts at 8% or ~4.5%
    const okR=rR<0||Math.abs(rR-rL)<.02||Math.abs(rL-rR-.035)<.02;
-   if(rL>0&&okR){ridgeShift=rL-.08;if(Math.abs(ridgeShift)>.09||Math.abs(ridgeShift)<.008)ridgeShift=0}
+   if(rL>0&&okR){ridgeShift=rL-.08;if(Math.abs(ridgeShift)>.09||Math.abs(ridgeShift)<.02)ridgeShift=0}
    RLOG.push([+rL.toFixed(3),+rR.toFixed(3),+ridgeShift.toFixed(3)]);
    if(ridgeShift){Ty.a+=ridgeShift}}
   const cross=(V,Hl)=>{ // u=V.a+V.b v ; v=Hl.a+Hl.b u
