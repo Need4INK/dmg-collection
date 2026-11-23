@@ -258,6 +258,14 @@ html.rot.cw body{transform:translateX(100vw) rotate(90deg);--st:env(safe-area-in
 #gPh{position:relative}#gPh.tap{cursor:pointer;-webkit-tap-highlight-color:transparent}
 #gPh .pw{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(20,20,22,.55);display:grid;place-items:center;color:#fff;opacity:.9;pointer-events:none}
 .fab[hidden]{display:none}
+/* Backup: Deleted games (built-in games removed with Delete game) → list with Restore. */
+.delb{display:flex;align-items:center;gap:8px;width:100%;height:38px;padding:0 14px;border-radius:19px;border:0;background:#2a2730;color:#e8e6ea;font:600 14px Inter,sans-serif;flex:none}
+.delb[hidden],#bDelL[hidden],#bList[hidden],#bHc[hidden]{display:none}
+.delb span{flex:1;text-align:left}.delb b{color:#ab2b64;font:600 15px Jost,sans-serif}.delb i{font-style:normal;color:#8d8994}
+#bDelL{flex:1;min-height:0;overflow-y:auto;margin:0 -14px;overscroll-behavior:contain}
+.dr{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid #2a2730}.dr div{flex:1;min-width:0}
+.dr b{display:block;font:600 15px Inter,sans-serif;color:#e8e6ea;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dr small{font-size:12px;color:#8d8994}
+.dr button{flex:none;height:34px;padding:0 14px;border-radius:17px;border:0;background:#2a2730;color:#e8e6ea;font:600 14px Inter,sans-serif}
 /* Brightness slider (scanner, under the buttons; double-tap = back to normal). --p = fill in %. */
 .lum{display:flex;align-items:center;gap:8px;height:18px;color:#a9a4b0}.lum svg{flex:none}
 #lum{--p:50%;flex:1;min-width:0;height:18px;margin:0;background:none;-webkit-appearance:none;appearance:none;touch-action:none}
@@ -344,7 +352,7 @@ html.rot.cw body{transform:translateX(100vw) rotate(90deg);--st:env(safe-area-in
     <i class="bband bst brs" aria-hidden="true"></i>
     <div class="bnr"><div class="rslot"><button class="back" data-back aria-label="Back"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 10H4M9 4l-6 6 6 6"/></svg></button></div><div class="btx"><div class="big" id="bN"></div><b class="lbl" id="bP"></b><span id="bT"></span></div></div>
   </div>
-  <div class="card grow" id="bHist"><div class="ch"><span>History</span><span class="hc"><i>Carts</i><i>Photos</i></span></div><div id="bList"></div></div>
+  <div class="card grow" id="bHist"><div class="ch"><span id="bHt">History</span><span class="hc" id="bHc"><i>Carts</i><i>Photos</i></span></div><button class="delb" id="bDelB" hidden><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5.5h13M8 5.5V3.8h4v1.7M5.5 5.5l.8 11h7.4l.8-11"/></svg><span>Deleted games</span><b id="bDelN"></b><i>›</i></button><div id="bList"></div><div id="bDelL" hidden></div></div>
   <div class="two" id="bRow"><button id="bIn">Import</button><button id="bEx" class="on">Export</button></div>
   <input type="file" id="bFile" accept=".zip,application/zip">
 </div>
@@ -1286,7 +1294,7 @@ function clearScan(){scanEd=null;src=null;srcData=null;quad=null;rot=0;lastBlob=
  view.style.display='none';$('empty').style.display='';for(const id of ['auto','reset','flip','save','lum'])$(id).disabled=true;setLum(0);wraw=null;
  if(outURL){URL.revokeObjectURL(outURL);outURL=null}$('outImg').src=PLACE;$('outMeta').innerHTML=`<b>${OW}×${OH}</b> · –`;
  $('code').value='';codeChanged();status('')}
-function go(id,push=true){if(id===cur)return refresh();if(push){stack.push(cur);try{history.pushState(null,'')}catch(e){}}if(cur==='bk'&&!bkBusy){bkZip=null;bkPend=null;bkJob++}if(cur==='scan'){preset=null;clearScan()}
+function go(id,push=true){if(id===cur)return refresh();if(push){stack.push(cur);try{history.pushState(null,'')}catch(e){}}if(cur==='bk'){bDel=false;if(!bkBusy){bkZip=null;bkPend=null;bkJob++}}if(cur==='scan'){preset=null;clearScan()}
  if(cur==='gv'&&gEditing&&id!=='scan')endEdit(); // left without Save: edits are dropped (a trip to the scanner from the photo keeps them)
  if(id==='gv'&&gEditing&&gScanOwn){for(const r of gRows){const c=r.c.trim().toUpperCase();if(OWN_CODES.has(c)!==gScanOwn.has(c))r.own=OWN_CODES.has(c)}} // ownership changed in the scanner
  gScanOwn=null;$('fab').hidden=id==='gv'&&gEditing;
@@ -1298,7 +1306,7 @@ function go(id,push=true){if(id===cur)return refresh();if(push){stack.push(cur);
  if(sc)layout();refresh()}
 // Back goes through the browser history, so Android's back button / gesture steps back inside the app instead of closing it.
 function back(){if(stack.length)history.back();else go('home',false)}
-addEventListener('popstate',()=>go(stack.pop()||'home',false));
+addEventListener('popstate',()=>{if(cur==='bk'&&bDel){stack.pop();bDel=false;return drawDel()}go(stack.pop()||'home',false)});
 // + on a game page opens the scanner with the shown variant's code already filled in (kept when a photo is picked).
 $('fab').addEventListener('click',()=>{if(cur==='scan')return back();const c=cur==='gv'?gSel:null;go('scan');
  if(c){preset=c;$('code').value=c;manual=true;codeChanged()}});
@@ -1513,6 +1521,13 @@ let bkZip=null,bkPend=null,bkJob=0,bkBusy=false;
 const MB=b=>b<1048576?Math.max(1,Math.round(b/1024))+' KB':(b/1048576).toFixed(b<10485760?1:0)+' MB';
 function bkLog(){try{const l=JSON.parse(localStorage.getItem('dmgBkLog')||'[]');return Array.isArray(l)?l:[]}catch(e){return []}}
 function bkAdd(k,c,p){const l=bkLog();l.push({t:Date.now(),k,c,p});try{localStorage.setItem('dmgBkLog',JSON.stringify(l.slice(-50)))}catch(e){}}
+// Deleted games: built-in games removed with Delete game (dmgMods e[key]=null). Restore brings back the built-in version (not ticks/photos).
+let bDel=false;const delKeys=()=>BASE.filter(b=>MODS.e[keyOf(b)]===null);
+function drawDel(){const l=delKeys();if(bDel&&!l.length)return back();$('bDelN').textContent=l.length;$('bDelB').hidden=bDel||!l.length;
+ $('bHt').textContent=bDel?'Deleted games':'History';$('bHc').hidden=bDel;$('bList').hidden=bDel;$('bDelL').hidden=!bDel;
+ if(bDel)$('bDelL').innerHTML=l.map(b=>`<div class="dr"><div><b>${esc(b[0])}</b><small>${b[1].length} variant${b[1].length===1?'':'s'}${b[2]?' · '+esc(b[2]):''}</small></div><button data-k="${esc(keyOf(b))}">Restore</button></div>`).join('');else drawHist()}
+$('bDelB').addEventListener('click',()=>{stack.push('bk');try{history.pushState(null,'')}catch(e){}bDel=true;drawDel();$('bDelL').scrollTop=0});
+$('bDelL').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(!b||MODS.e[b.dataset.k]!==null)return;delete MODS.e[b.dataset.k];commitGames([...OWN_CODES]);drawBackup()}); // drawBackup also re-prepares the export file
 function drawHist(){const box=$('bList'),l=bkLog().reverse();if(!l.length){box.innerHTML='<p class="hnone">No exports or imports yet</p>';return}
  const n=Math.max(1,Math.floor(box.clientHeight/34)),d=t=>{const x=new Date(t),z=n=>String(n).padStart(2,'0');return x.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+` · ${z(x.getHours())}:${z(x.getMinutes())}`};
  box.innerHTML=l.slice(0,n).map(r=>`<div class="hr"><b class="${r.k}">${r.k==='e'?'Export':'Import'}</b><span>${d(r.t)}</span><i>${r.c}</i><i>${r.p}</i></div>`).join('')}
@@ -1521,7 +1536,7 @@ function bkShow(carts,photos,size,sub){$('bN').innerHTML=`${carts}<small> cart${
 function bkBtns(ask,off){$('bIn').textContent=ask?'Cancel':'Import';$('bEx').textContent=ask?'Replace':'Export';$('bIn').disabled=!!off;$('bEx').disabled=!!off}
 // Opening the screen prepares the file at once, so Export can hand it straight to the share sheet (Save to Files).
 async function drawBackup(msg){if(bkBusy)return;const job=++bkJob;bkPend=null;bkZip=null;bkBtns(false);$('bEx').disabled=true;
- bkShow(OWN_CODES.size,PHOTOS.size,0,'Preparing…');drawHist();
+ bkShow(OWN_CODES.size,PHOTOS.size,0,'Preparing…');drawDel();
  const keys=(await idb('readonly',s=>s.getAllKeys()))||[],recs=(await idb('readonly',s=>s.getAll()))||[],files=[],ph={};
  for(let k=0;k<keys.length;k++){if(job!==bkJob)return;const r=recs[k];if(!r||!r.full)continue;files.push({name:`photos/${keys[k]}.jpg`,data:new Uint8Array(await r.full.arrayBuffer())});ph[keys[k]]=r.t||0}
  if(job!==bkJob||cur!=='bk')return;
