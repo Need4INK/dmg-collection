@@ -585,7 +585,7 @@ function makeFit(REF,homog){
  const shuf=all; // stored already shuffled
  const sub=n=>shuf.slice(0,n);
  function pack(ps,ow=1){const n=ps.length,a=new Float32Array(n*5);ps.forEach((p,i)=>{const out=p.x<.03||p.x>.97||p.y<.03||p.y>R-.03;a[i*5]=p.x;a[i*5+1]=p.y;a[i*5+2]=p.nx;a[i*5+3]=p.ny;a[i*5+4]=p.w*(out?ow:1)});return a}
- const P150=pack(sub(160)),P400=pack(sub(450)),P700=pack(sub(700)),PALL=pack(shuf.slice(0,1400));let OWF=+((typeof process!=='undefined'&&process.env&&process.env.OWF)||.35);const P400o=pack(sub(450),OWF),P700o=pack(sub(700),OWF),P400i=pack(sub(450),0),P700i=pack(sub(700),0);let SHARP=+((typeof process!=='undefined'&&process.env&&process.env.SHARP)||.8),SNAPN=+((typeof process!=='undefined'&&process.env&&process.env.SNAPN)||2),BCOST=+((typeof process!=='undefined'&&process.env&&process.env.BCOST)||1.5),INNER=false,MODE=(typeof process!=='undefined'&&process.env&&process.env.MODE)||'snap';
+ const P150=pack(sub(160)),P400=pack(sub(450)),P700=pack(sub(700)),PALL=pack(shuf.slice(0,1400));let OWF=+((typeof process!=='undefined'&&process.env&&process.env.OWF)||.35);const P400o=pack(sub(450),OWF),P700o=pack(sub(700),OWF),P400i=pack(sub(450),0),P700i=pack(sub(700),0);let RLOG=[],RIDGE=1,RK=+((typeof process!=='undefined'&&process.env&&process.env.RK)||2),RIMA=0,RS=+((typeof process!=='undefined'&&process.env&&process.env.RS)||.075),TMODE=(typeof process!=='undefined'&&process.env&&process.env.TMODE)||'',TS=+((typeof process!=='undefined'&&process.env&&process.env.TS)||.035),TU0=+((typeof process!=='undefined'&&process.env&&process.env.TU0)||0),TU1=+((typeof process!=='undefined'&&process.env&&process.env.TU1)||.85),SHARP=+((typeof process!=='undefined'&&process.env&&process.env.SHARP)||.8),SNAPN=+((typeof process!=='undefined'&&process.env&&process.env.SNAPN)||2),BCOST=+((typeof process!=='undefined'&&process.env&&process.env.BCOST)||1.5),INNER=false,MODE=(typeof process!=='undefined'&&process.env&&process.env.MODE)||'snap';
  function level(g,w,h,r=1){const b=new Float32Array(w*h);
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){let s=0,n=0;for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const X=x+dx,Y=y+dy;if(X>=0&&Y>=0&&X<w&&Y<h){s+=g[Y*w+X];n++}}b[y*w+x]=s/n}
   const ax=new Float32Array(w*h),ay=new Float32Array(w*h),m=new Float32Array(w*h),mn=new Float32Array(w*h);
@@ -662,7 +662,27 @@ function makeFit(REF,homog){
   {const p=[];for(const v of vs){const i=first(.92,v,st,0,100);if(i>0)p.push([v,.92+i*st-st])}sides.R=p.length>vs.length*.5?fitLine(p):null}
   {const p=[];for(const v of vs){const i=first(.08,v,-st,0,100);if(i>0)p.push([v,.08-i*st+st])}sides.L=p.length>vs.length*.5?fitLine(p):null}
   {const p=[],uu=us.filter(u=>u<.37||u>.63);for(const u of uu){const i=first(u,.905,0,st/R*1,110);if(i>0)p.push([u,.905+i*st/R-st/R])}sides.B=p.length>uu.length*.5?fitLine(p):null}
-  {const p=[],uu=us.filter(u=>u<.85);for(const u of uu){const i=first(u,.035,0,-st/R,90);if(i>0)p.push([u,.035-i*st/R+st/R])}sides.T=p.length>uu.length*.5?fitLine(p):null}
+  if(TMODE==='left'||TMODE==='both'){ // plain strip left of the banner, above the ridges: offset only, slope from the frame
+   const p=[];for(let u=.035;u<=.165;u+=.006){const i=first(u,.055,0,-st/R,140);if(i>0)p.push(.055-i*st/R+st/R)}
+   if(p.length>=10){p.sort((a,b)=>a-b);const m=p[p.length>>1],q=p.filter(x=>Math.abs(x-m)<.012);sides.TL=q.length>=8?{a:q.reduce((s,x)=>s+x,0)/q.length,b:0,n:q.length}:null}else sides.TL=null;
+   if(TMODE==='left')sides.T=sides.TL}
+  if(TMODE!=='left'){const p=[],uu=us.filter(u=>u>TU0&&u<TU1);for(const u of uu){const i=first(u,TS,0,-st/R,140);if(i>0)p.push([u,TS-i*st/R+st/R])}sides.T=p.length>uu.length*.5?fitLine(p):null}
+  // Banner anchor: the banner's top rim is a sharp line 5.9% below the cart's top edge (all 6 scans). Find it from inside the
+  // banner (above the lettering) and place the top 5.9% above it; the cart's own top edge is often lost in shadow or background.
+  // Banner ruler: the banner's top and bottom rims are long straight lines 10.8% apart; the top rim is 5.9% below the cart's top edge
+  // (all 6 scans). Row-averaged edge strength over two column bands (lettering averages out); the rim pair fixes the top line.
+  let anch=false;
+  if(RIMA){const rows=[],v0=-.04,v1=.24,dv=st/R,bands=[[.26,.48],[.52,.74]],pr=bands.map(()=>[]);
+   for(let v=v0;v<=v1;v+=dv)bands.forEach(([u0,u1],k)=>{let s=0,n=0;for(let u=u0;u<=u1;u+=.01){s+=Math.abs(at(u,v+dv)-at(u,v-dv));n++}pr[k].push(s/n)});
+   // both bands summed; every rim pair (two peaks 10.8% ±1.5% apart); the upper of the strong pairs is the banner
+   const p=pr[0].map((x,i)=>x+pr[1][i]),n=p.length,gap=Math.round(.108/dv),tol=Math.round(.015/dv),pairs=[];
+   const pk=i=>i>0&&i<n-1&&p[i]>=p[i-1]&&p[i]>=p[i+1];
+   for(let i=1;i<n-1;i++)if(pk(i))for(let d=-tol;d<=tol;d++){const j=i+gap+d;if(pk(j))pairs.push({sc:Math.min(p[i],p[j]),v:v0+i*dv})}
+   const med=p.slice().sort((a,b)=>a-b)[n>>1],mx=Math.max(0,...pairs.map(q=>q.sc)),good=pairs.filter(q=>q.sc>=mx*.6&&q.sc>med*RK).sort((a,b)=>a.v-b.v);
+   if(typeof DBG!=='undefined')DBG.push({pairs:good.map(q=>[+q.v.toFixed(3),+(q.sc/med).toFixed(1)])});
+   if(good.length){const a=good[0].v-.059,at2={a,b:0,n:99};
+    if(typeof DBG!=='undefined')DBG.push({ruler:[+a.toFixed(4)],direct:sides.T&&+sides.T.a.toFixed(4)});
+    if(!sides.T||Math.abs((sides.T.a+sides.T.b*.5)-a)>.012){sides.T=at2;anch=true}}}
   // Notch check (top right: the top edge runs flat to u≈.91, then steps down 5.5% to the notch floor; the notch wall stands at u≈.91).
   // If the step is where the top line says it should be, the top line is confirmed.
   let notchOK=false;
@@ -674,12 +694,36 @@ function makeFit(REF,homog){
   // lines in canonical (u,v): L/R: u=a+b v ; T/B: v=a+b u. Defaults = the fitted frame. A side may move 10% in and 6% out
   // (the top only out beyond 2% when the notch confirms it).
   const ok=(ln,def,inward,lim=.06)=>ln&&Math.abs(ln.b)<.08&&((ln.a+ln.b*.5)-def)*inward<=.1&&((ln.a+ln.b*.5)-def)*inward>=-lim;
-  const Lx=ok(sides.L,0,1)?sides.L:{a:0,b:0},Rx=ok(sides.R,1,-1)?sides.R:{a:1,b:0},Ty=ok(sides.T,0,1,notchOK?.06:.02)?sides.T:{a:0,b:0},By=ok(sides.B,1,-1)?sides.B:{a:1,b:0};
+  const Lx=ok(sides.L,0,1)?sides.L:{a:0,b:0},Rx=ok(sides.R,1,-1)?sides.R:{a:1,b:0},Ty=ok(sides.T,0,1,anch?.09:notchOK?.06:.02)?sides.T:{a:0,b:0},By=ok(sides.B,1,-1)?sides.B:{a:1,b:0};
+  // Ridge check (scans): left side, plain plastic from the top edge down to the first ridge groove at 8%;
+  // right side, the notch step comes first at 4.5%. A top placed on the banner rim (6% low) sees the first ridge ~2% below it
+  // on both sides; a top placed too high sees both edges further down by the same amount. Shift the top line to match.
+  let ridgeShift=0;
+  if(RIDGE){
+   // all edges below the current top line, per band (row-averaged profile; threshold from the plain plastic lower down)
+   const edges=(u0,u1)=>{const p=[],dv=st/R;for(let v=.008;v<=.26;v+=dv){let s=0,n=0;for(let u=u0;u<=u1;u+=.008){s+=at(u,Ty.a+Ty.b*u+v);n++}p.push(s/n)}
+     const q=[];for(let v=.3;v<=.6;v+=dv){let s=0,n=0;for(let u=u0;u<=u1;u+=.008){s+=at(u,Ty.a+Ty.b*u+v);n++}q.push(s/n)}
+     const qd=q.map((x,i)=>i?Math.abs(x-q[i-1]):0).slice(1).sort((a,b)=>a-b),T=Math.max(8,4*qd[qd.length>>1]);
+     const d=p.map((x,i)=>i?Math.abs(x-p[i-1]):0),e=[];for(let i=2;i<d.length-1;i++)if(d[i]>T&&d[i]>=d[i-1]&&d[i]>=d[i+1]&&(!e.length||.008+i*dv-e[e.length-1]>.008))e.push(.008+i*dv);return e};
+   // ridge block = an edge followed by at least 3 more within the next 9% (grooves every ~3%)
+   const ridgeStart=e=>{for(let k=0;k<e.length;k++){if(e.filter(x=>x>e[k]&&x<e[k]+.09).length>=3)return e[k]}return -1};
+   const EL=edges(.025,.075),ER=edges(.925,.975),rL=ridgeStart(EL),rR=ridgeStart(ER);
+   // scans: ridges start at 8% on both sides
+   // left ridges start at 8%; on the right the notch step (4.5%) may be counted as the first groove, so it starts at 8% or ~4.5%
+   const okR=rR<0||Math.abs(rR-rL)<.02||Math.abs(rL-rR-.035)<.02;
+   if(rL>0&&okR){ridgeShift=rL-.08;if(Math.abs(ridgeShift)>.09||Math.abs(ridgeShift)<.008)ridgeShift=0}
+   RLOG.push([+rL.toFixed(3),+rR.toFixed(3),+ridgeShift.toFixed(3)]);
+   if(ridgeShift){Ty.a+=ridgeShift}}
   const cross=(V,Hl)=>{ // u=V.a+V.b v ; v=Hl.a+Hl.b u
    const u=(V.a+V.b*Hl.a)/(1-V.b*Hl.b),v=Hl.a+Hl.b*u;return [u,v]};
-  const C=[cross(Lx,Ty),cross(Rx,Ty),cross(Rx,By),cross(Lx,By)];
+  const toImg=C=>C.map(([u,v])=>{const X=u,Y=v*R,z=H[6]*X+H[7]*Y+1;return [(H[0]*X+H[1]*Y+H[2])/z,(H[3]*X+H[4]*Y+H[5])/z]});
+  let C=[cross(Lx,Ty),cross(Rx,Ty),cross(Rx,By),cross(Lx,By)];
+  // second opinion on the top (plain strip left of the banner): when it disagrees by >1.5%, the template score decides
+  if(TMODE==='both'&&sides.TL&&ok(sides.TL,0,1,notchOK?.06:.02)&&Math.abs((sides.TL.a)-(Ty.a+Ty.b*.1))>.015){
+   const C2=[cross(Lx,sides.TL),cross(Rx,sides.TL),cross(Rx,By),cross(Lx,By)];
+   if(judge(L,toImg(C2))>judge(L,toImg(C)))C=C2}
   if(typeof DBG!=='undefined')DBG.push({notchOK,sides:Object.fromEntries(Object.entries(sides).map(([k,v])=>[k,v&&[+v.a.toFixed(4),+v.b.toFixed(4),v.n]]))});
-  return C.map(([u,v])=>{const X=u,Y=v*R,z=H[6]*X+H[7]*Y+1;return [(H[0]*X+H[1]*Y+H[2])/z,(H[3]*X+H[4]*Y+H[5])/z]})}
+  return toImg(C)}
  function simQuad(cx,cy,s,a,q=1){const ca=Math.cos(a),sa=Math.sin(a);return [[0,0],[1,0],[1,R],[0,R]].map(([X,Y])=>{X-=.5;Y-=R/2;return [cx+s*(ca*X-sa*Y),cy+q*s*(sa*X+ca*Y)]})}
  // dominant edge direction (mod 90°) of the photo: the cart's sides dominate on a plain background
  // dominant straight-edge directions (mod 90°): orientation histogram weighted by local coherence (long straight edges win over wrinkles/texture)
@@ -776,8 +820,11 @@ function makeFit(REF,homog){
  function find(L,extra=[]){const k=L.k||1;const r=find0(L,extra.map(Q=>Q.map(p=>[p[0]*k,p[1]*k])));r.Q=r.Q.map(p=>[p[0]/k,p[1]/k]);return r}
  // two working sizes; the better-scoring fit wins (the search can miss at one grid and hit at the other)
  let WSS=((typeof process!=='undefined'&&process.env&&process.env.WSS)||'1024').split(',').map(Number);
- function findBest(g,w,h,extra=[]){let best=null;for(const WS of WSS){const L=prep(g,w,h,WS),r=find(L,extra);
-   const k=L.k,jj=judge(L,r.Q.map(p=>[p[0]*k,p[1]*k]));if(!best||jj>best.jj){best=r;best.jj=jj}}return best}
+ function findBest(g,w,h,extra=[]){RLOG=[];let best=null;RIDGE=0;for(const WS of WSS){const L=prep(g,w,h,WS),r=find(L,extra);r.L=L;
+   const k=L.k,jj=judge(L,r.Q.map(p=>[p[0]*k,p[1]*k]));if(!best||jj>best.jj){best=r;best.jj=jj}}
+  // ridge check on the winner only (it must not influence which way up the cart is)
+  RIDGE=1;RLOG=[];{const L=best.L,k=L.k;let Q=best.Q.map(p=>[p[0]*k,p[1]*k]);for(let i=0;i<2;i++)Q=snap(L,Q);best.Q=Q.map(p=>[p[0]/k,p[1]/k])}
+  best.rl=RLOG.slice();delete best.L;return best}
  function find0(L,extra=[]){let t0=Date.now();const cs=[];for(const lv of SLVS){SLV=lv;cs.push(...search(L,6))}tm('search',t0);t0=Date.now();
   for(const Q of extra)for(let k=0;k<4;k++)cs.push({v:0,Q:quarter(Q,k)});
   // pre-screen every start on a ~250px view, keep the best few
