@@ -570,6 +570,235 @@ function makeOCR(){
 }
 const OCR=makeOCR();
 // OCR END
+// CART FIT START
+// DMG cart reference (built from 6 straight scans): 1400 edge points [u,v,angle,weight] + 220 plain-plastic points [u,v]
+const CART_REF={p:"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",f:"3lhuzSIkUYZQRm/HyK9fMkYeBaAUzVGGDs5/STZ0hSVeGkqwFM11hcIz8zRGHi97jo9uzQhSk8Y0IX1VIMvGTUab2srKhfAoMshHwlZFIskcopPGNCHuUl6XPScIz8ZrCM/ayryxRsietl44QB+4v1Ic5oJMHQeUWBsEpizJxk0oI8dHWBv+yW6+hxnkV2AsKCPnfBajksw6IKBaLMn+yV4aElIiJCW3njmoKsKwXzI0Ibi/MsiafjQhubm2NUbIRMX+yaaLb8dAnG7NWBvsXnCURshKxCPDJk2FJf4pt8UOUSLJTB0wdTJLkswyyEykLMl8W+aqb8dGHlCMlI5GyCIkLI1MHVlWQB/FcV4aWlDSWqgqCM8opW6+/skun2EmCM/Ed5K4/slWRW/HUhycckYenJBMHQSmUhySzOypXjgun6U8DlHwKCzJ62R0QBkoOiAGmthZbs2ettrKqjf+ySDLAL40IelwZmxhJhwl6HYazOpqPkn+yTogDXD+KSLJRh7rZF6XYSYooIUlLiJ8WxrML3tAH7bLKCMKgmJDPScoIwiOjo+FJXaTYSbmLZPG6lbMKSIkJ6vSWoQrdpNvxxTNyF8IzwOsLEzayiDLwoNMHVKAXhonq/ZU8Cg6IAWgDs6XrhTNMW/cgvAoLiJ/SUCctsuyiW7NHCWYihaj/smUjpLMQB/gpkYecKMcJZyQRMVuzTLIT5I+xhRGRptuzWqV/smSuG7N3liTxiIkC3w4x7i//qZGyIy59C5eGgOsuIg9Jy4iE0wsyVtKLiJ7YW5BhSUuIri/UMO2y1BGkswiJHWFOiAbHFgburOkOG7NvLEiyRRQ/slYG6NINJ5GyCbKm3ggy6FU6IAWOrpePSd0QIUlaL+3xUrEb8fCsEbIWBt9VSbK53wazCilmLeHGbyxhCsIz7utQB+hVPZUb8csyf/DAH2lPIRnhSUiJDFvGHk9J/p9pTwyyAG4OiDBiciv8zRsa6U8kjsiyVxEk8YuInGdLiIQXjQhKpkMe9rKSsS3xRwlmn7cgqgq+n1uzW5Bk8Y0IZuWqrRGyEwdCoIoI3WFWJgiyTLIArLMW6gqej9vx2SWpTxGHnd5NJ49J0Ye6HbmqpLMMsjFcUya/skgy6NILMl6ZyDLf0nyqBkoUhydbCIkk8Y6IN24CiiSzA=="};
+function makeFit(REF,homog){
+ const b64=s=>{const t=atob(s),u=new Uint8Array(t.length);for(let i=0;i<t.length;i++)u[i]=t.charCodeAt(i);return new DataView(u.buffer)};
+ const PTS=[],FLAT=[];{const d=b64(REF.p);for(let o=0;o<d.byteLength;o+=6){const a=d.getUint8(o+4)/255*2*Math.PI-Math.PI;PTS.push([d.getUint16(o,true)/50000-.1,d.getUint16(o+2,true)/50000-.1,Math.cos(a),Math.sin(a),d.getUint8(o+5)/255])}
+  const f=b64(REF.f);for(let o=0;o<f.byteLength;o+=4)FLAT.push([f.getUint16(o,true)/50000-.1,f.getUint16(o+2,true)/50000-.1])}
+ const R=1132/994;const T={};const tm=(k,t0)=>{T[k]=(T[k]||0)+Date.now()-t0};
+ let NPK=3,OFFS=[-5,0,5],SCL=1.15,STEP=.045,DIL=.025,SLVS=[180,300],NPRE=12,SQ=[1,.72],LAM=1,USEOFF=false,SLV=260;const FL=new Float32Array(FLAT.flatMap(p=>[p[0],p[1]*R]));
+ // points: canonical X=u, Y=v*R (cart width = 1); n normal; w weight. Sorted strongest first, then spread out.
+ const all=PTS.map(p=>({x:p[0],y:p[1]*R,nx:p[2],ny:p[3]/1,w:p[4]}));
+ function subset(n){const step=all.length/n,o=[];for(let i=0;i<n;i++)o.push(all[Math.floor(i*step)]);return o}
+ const shuf=all; // stored already shuffled
+ const sub=n=>shuf.slice(0,n);
+ function pack(ps,ow=1){const n=ps.length,a=new Float32Array(n*5);ps.forEach((p,i)=>{const out=p.x<.03||p.x>.97||p.y<.03||p.y>R-.03;a[i*5]=p.x;a[i*5+1]=p.y;a[i*5+2]=p.nx;a[i*5+3]=p.ny;a[i*5+4]=p.w*(out?ow:1)});return a}
+ const P150=pack(sub(160)),P400=pack(sub(450)),P700=pack(sub(700)),PALL=pack(shuf.slice(0,1400));let OWF=+((typeof process!=='undefined'&&process.env&&process.env.OWF)||.35);const P400o=pack(sub(450),OWF),P700o=pack(sub(700),OWF),P400i=pack(sub(450),0),P700i=pack(sub(700),0);let BCOST=+((typeof process!=='undefined'&&process.env&&process.env.BCOST)||1.5),INNER=false,MODE=(typeof process!=='undefined'&&process.env&&process.env.MODE)||'snap';
+ function level(g,w,h,r=1){const b=new Float32Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){let s=0,n=0;for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const X=x+dx,Y=y+dy;if(X>=0&&Y>=0&&X<w&&Y<h){s+=g[Y*w+X];n++}}b[y*w+x]=s/n}
+  const ax=new Float32Array(w*h),ay=new Float32Array(w*h),m=new Float32Array(w*h),mn=new Float32Array(w*h);
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x;
+   const gx=(b[i-w+1]+2*b[i+1]+b[i+w+1]-b[i-w-1]-2*b[i-1]-b[i+w-1])/8,gy=(b[i+w-1]+2*b[i+w]+b[i+w+1]-b[i-w-1]-2*b[i-w]-b[i-w+1])/8;
+   ax[i]=gx;ay[i]=gy;m[i]=Math.hypot(gx,gy)}
+  const smp=[];for(let i=0;i<m.length;i+=7)smp.push(m[i]);smp.sort((a,b)=>a-b);const k=smp[(smp.length*.9)|0]+.5;
+  for(let i=0;i<m.length;i++){const d=m[i]+k;ax[i]/=d;ay[i]/=d;mn[i]=m[i]/d}
+  return {w,h,ax,ay,mn,g}}
+ function prep(g,w,h){const L=[level(g,w,h)];let G=g,W=w,H=h;
+  while(Math.max(W,H)>180){const W2=W>>1,H2=H>>1,o=new Float32Array(W2*H2);
+   for(let y=0;y<H2;y++)for(let x=0;x<W2;x++){const i=2*y*W+2*x;o[y*W2+x]=(G[i]+G[i+1]+G[i+W]+G[i+W+1])/4}
+   G=o;W=W2;H=H2;L.push(level(G,W,H))}
+  return L}
+ function coarse(L,r){const i=L.findIndex(l=>Math.max(l.w,l.h)<=260);const l=L[i];return {l:Object.assign(level(l.g,l.w,l.h,r),{}),sc:2**i}}
+ // value of one point at pixel (x,y) with normal (nx,ny)
+ function samp(l,x,y,nx,ny){if(x<1||y<1||x>=l.w-2||y>=l.h-2)return 0;const x0=x|0,y0=y|0,fx=x-x0,fy=y-y0,i=y0*l.w+x0,w=l.w;
+  const gx=(l.ax[i]*(1-fx)+l.ax[i+1]*fx)*(1-fy)+(l.ax[i+w]*(1-fx)+l.ax[i+w+1]*fx)*fy,gy=(l.ay[i]*(1-fx)+l.ay[i+1]*fx)*(1-fy)+(l.ay[i+w]*(1-fx)+l.ay[i+w+1]*fx)*fy;
+  return Math.abs(gx*nx+gy*ny)}
+ function mag(l,x,y){if(x<0||y<0||x>=l.w-1||y>=l.h-1)return .5;const x0=x|0,y0=y|0,fx=x-x0,fy=y-y0,i=y0*l.w+x0,w=l.w;
+  return (l.mn[i]*(1-fx)+l.mn[i+1]*fx)*(1-fy)+(l.mn[i+w]*(1-fx)+l.mn[i+w+1]*fx)*fy}
+ const OFF=.03;
+ function pv(l,x,y,nx,ny,d){return USEOFF?samp(l,x,y,nx,ny)-.5*(mag(l,x+nx*d,y+ny*d)+mag(l,x-nx*d,y-ny*d)):samp(l,x,y,nx,ny)}
+ // similarity pose score (coarse search): cart width s px, angle a, top-left corner at (tx,ty) — centre-based
+ function simScore(l,P,cx,cy,s,ca,sa){let v=0,W=0;const n=P.length/5;
+  for(let i=0;i<n;i++){const X=P[i*5]-.5,Y=P[i*5+1]-R/2,nx=P[i*5+2],ny=P[i*5+3],w=P[i*5+4];
+   const x=cx+s*(ca*X-sa*Y),y=cy+s*(sa*X+ca*Y);v+=w*pv(l,x,y,ca*nx-sa*ny,sa*nx+ca*ny,Math.max(1.2,s*OFF));W+=w}
+  let f=0;const m=FL.length/2;for(let i=0;i<m;i++){const X=FL[i*2]-.5,Y=FL[i*2+1]-R/2;f+=mag(l,cx+s*(ca*X-sa*Y),cy+s*(sa*X+ca*Y))}
+  return v/W-LAM*f/m}
+ function quadScore(l,P,Q,sc){const H=homog([[0,0],[1,0],[1,R],[0,R]],Q.map(q=>[q[0]*sc,q[1]*sc]));let v=0,W=0;const n=P.length/5,e=.004;
+  for(let i=0;i<n;i++){const X=P[i*5],Y=P[i*5+1],nx=P[i*5+2],ny=P[i*5+3],w=P[i*5+4];
+   const z=H[6]*X+H[7]*Y+1,x=(H[0]*X+H[1]*Y+H[2])/z,y=(H[3]*X+H[4]*Y+H[5])/z;
+   const X2=X-ny*e,Y2=Y+nx*e,z2=H[6]*X2+H[7]*Y2+1,tx=(H[0]*X2+H[1]*Y2+H[2])/z2-x,ty=(H[3]*X2+H[4]*Y2+H[5])/z2-y,tl=Math.hypot(tx,ty)||1;
+   v+=w*pv(l,x,y,ty/tl,-tx/tl,Math.max(1.2,tl/e*OFF));W+=w}
+  let f=0;const m=FL.length/2;for(let i=0;i<m;i++){const X=FL[i*2],Y=FL[i*2+1],z=H[6]*X+H[7]*Y+1;f+=mag(l,(H[0]*X+H[1]*Y+H[2])/z,(H[3]*X+H[4]*Y+H[5])/z)}
+  return v/W-LAM*f/m-(RIMON&&RIMW?RIMW*rimPen(l,H):0)}
+ // rim: points just inside the cart's outer edge. Their grey must match the cart's plastic (median of the plain-plastic points);
+ // an outline placed on the cart's own shadow puts the rim in the dark shadow instead.
+ // rim pairs: a point just inside the outer edge and one a little further in (same side, same light).
+ // On the true edge both are plastic; an outline pushed onto the cart's shadow or side wall makes the outer one darker.
+ const RIM=[];
+ for(const d of [.012,.03,.05]){
+  for(let v=.2;v<=.95;v+=.03)if(v<.38||v>.45){RIM.push(d,v*R,.09,v*R,1-d,v*R,1-.09,v*R)}
+  for(let u=.08;u<=.92;u+=.03){if(u<.36||u>.64)RIM.push(u,R-d,u,R-.115);if(u<=.85&&d<.04)RIM.push(u,d,u,.045)}}
+ function gat(l,x,y){x=Math.max(0,Math.min(l.w-1.001,x));y=Math.max(0,Math.min(l.h-1.001,y));const x0=x|0,y0=y|0,fx=x-x0,fy=y-y0,i=y0*l.w+x0,w=l.w;
+  return (l.g[i]*(1-fx)+l.g[i+1]*fx)*(1-fy)+(l.g[i+w]*(1-fx)+l.g[i+w+1]*fx)*fy}
+ const hp=(l,H,X,Y)=>{const z=H[6]*X+H[7]*Y+1;return gat(l,(H[0]*X+H[1]*Y+H[2])/z,(H[3]*X+H[4]*Y+H[5])/z)};
+ function rimPen(l,H){let p=0;const n=RIM.length/4;
+  for(let i=0;i<n;i++){const d=hp(l,H,RIM[i*4+2],RIM[i*4+3])-hp(l,H,RIM[i*4],RIM[i*4+1]);p+=Math.min(1.5,Math.max(0,(d>0?d:-.8*d)-RT0)/50)}
+  return p/n}
+ let RIMW=2,RIMON=false,RIMEN=false,RT0=12;
+ // Snap the outline onto the cart's face edges: going outward from plain plastic, the first strong line is the face edge
+ // (then come the crease, side wall, shadow or background). Per side: many samples -> straight line fit; corners = line crossings.
+ function snap(L,Q0){const l=L[0],H=homog([[0,0],[1,0],[1,R],[0,R]],Q0),st=.0015;
+  const at=(u,v)=>hp(l,H,u,v*R);
+  // profile from (u0,v0) stepping (du,dv) n times; returns offset (in steps) of first sustained departure from the plastic, or -1
+  const first=(u0,v0,du,dv,n)=>{const p=[];for(let i=0;i<n;i++)p.push(at(u0+du*i,v0+dv*i));const ref=p.slice(0,8).sort((a,b)=>a-b)[4],dev=p.slice(0,8).map(x=>Math.abs(x-ref)).sort((a,b)=>a-b)[4];
+   const T=Math.max(12,4*dev+4);for(let i=8;i<n-3;i++)if(Math.abs(p[i]-ref)>T&&Math.abs(p[i+1]-ref)>T&&Math.abs(p[i+2]-ref)>T)return i;return -1};
+  const fitLine=(pts)=>{ // pts [t, x]: x = a + b t, robust (2 rounds of trimmed least squares)
+   let use=pts;for(let r=0;r<3;r++){const n=use.length;if(n<6)return null;let st=0,sx=0,stt=0,stx=0;for(const [t,x] of use){st+=t;sx+=x;stt+=t*t;stx+=t*x}
+    const b=(n*stx-st*sx)/(n*stt-st*st||1e-9),a=(sx-b*st)/n;const res=use.map(([t,x])=>Math.abs(x-a-b*t)).sort((p,q)=>p-q),cut=Math.max(.004,res[(n*.6)|0]*2);
+    const nu=use.filter(([t,x])=>Math.abs(x-a-b*t)<=cut);if(r===2||nu.length===use.length)return {a,b,n:nu.length};use=nu}return null};
+  const vs=[],us=[];for(let v=.2;v<=.95;v+=.01)if(v<.38||v>.46)vs.push(v);for(let u=.08;u<=.92;u+=.01)us.push(u);
+  const sides={};
+  {const p=[];for(const v of vs){const i=first(.92,v,st,0,100);if(i>0)p.push([v,.92+i*st-st])}sides.R=p.length>vs.length*.5?fitLine(p):null}
+  {const p=[];for(const v of vs){const i=first(.08,v,-st,0,100);if(i>0)p.push([v,.08-i*st+st])}sides.L=p.length>vs.length*.5?fitLine(p):null}
+  {const p=[],uu=us.filter(u=>u<.37||u>.63);for(const u of uu){const i=first(u,.905,0,st/R*1,110);if(i>0)p.push([u,.905+i*st/R-st/R])}sides.B=p.length>uu.length*.5?fitLine(p):null}
+  {const p=[],uu=us.filter(u=>u<.85);for(const u of uu){const i=first(u,.035,0,-st/R,70);if(i>0)p.push([u,.035-i*st/R+st/R])}sides.T=p.length>uu.length*.5?fitLine(p):null}
+  // lines in canonical (u,v): L/R: u=a+b v ; T/B: v=a+b u. Defaults = the fitted frame. Keep moves within -8%..+2%.
+  const ok=(ln,def,inward)=>ln&&Math.abs(ln.b)<.08&&((ln.a+ln.b*.5)-def)*inward<=.1&&((ln.a+ln.b*.5)-def)*inward>=-.02;
+  const Lx=ok(sides.L,0,1)?sides.L:{a:0,b:0},Rx=ok(sides.R,1,-1)?sides.R:{a:1,b:0},Ty=ok(sides.T,0,1)?sides.T:{a:0,b:0},By=ok(sides.B,1,-1)?sides.B:{a:1,b:0};
+  const cross=(V,Hl)=>{ // u=V.a+V.b v ; v=Hl.a+Hl.b u
+   const u=(V.a+V.b*Hl.a)/(1-V.b*Hl.b),v=Hl.a+Hl.b*u;return [u,v]};
+  const C=[cross(Lx,Ty),cross(Rx,Ty),cross(Rx,By),cross(Lx,By)];
+  if(typeof DBG!=='undefined')DBG.push({sides:Object.fromEntries(Object.entries(sides).map(([k,v])=>[k,v&&[+v.a.toFixed(4),+v.b.toFixed(4),v.n]]))});
+  return C.map(([u,v])=>{const X=u,Y=v*R,z=H[6]*X+H[7]*Y+1;return [(H[0]*X+H[1]*Y+H[2])/z,(H[3]*X+H[4]*Y+H[5])/z]})}
+ function simQuad(cx,cy,s,a,q=1){const ca=Math.cos(a),sa=Math.sin(a);return [[0,0],[1,0],[1,R],[0,R]].map(([X,Y])=>{X-=.5;Y-=R/2;return [cx+s*(ca*X-sa*Y),cy+q*s*(sa*X+ca*Y)]})}
+ // dominant edge direction (mod 90°) of the photo: the cart's sides dominate on a plain background
+ // dominant straight-edge directions (mod 90°): orientation histogram weighted by local coherence (long straight edges win over wrinkles/texture)
+ function dirs(l){const w=l.w,h=l.h,B=90,hist=new Float32Array(B),r=2;
+  const xx=new Float32Array(w*h),yy=new Float32Array(w*h),xy=new Float32Array(w*h);
+  for(let i=0;i<w*h;i++){const gx=l.ax[i],gy=l.ay[i];xx[i]=gx*gx;yy[i]=gy*gy;xy[i]=gx*gy}
+  const bx=boxs(xx,w,h,r),by=boxs(yy,w,h,r),bxy=boxs(xy,w,h,r);
+  for(let i=0;i<w*h;i++){const a=bx[i],b=by[i],c=bxy[i],tr=a+b;if(tr<.01)continue;const coh=Math.sqrt((a-b)**2+4*c*c)/tr;
+   const g2=l.ax[i]**2+l.ay[i]**2;if(g2<.02)continue;let ang=Math.atan2(l.ay[i],l.ax[i])*180/Math.PI;ang=((ang%90)+90)%90;hist[Math.round(ang)%B]+=g2*coh**4}
+  const sm=new Float32Array(B);for(let i=0;i<B;i++)for(let d=-3;d<=3;d++)sm[i]+=hist[(i+d+B)%B]*(4-Math.abs(d));
+  const pk=[];for(let i=0;i<B;i++)if(sm[i]>=sm[(i+1)%B]&&sm[i]>sm[(i+B-1)%B])pk.push([sm[i],i]);pk.sort((a,b)=>b[0]-a[0]);
+  return pk.slice(0,NPK).filter(p=>p[0]>pk[0][0]*.3).map(p=>p[1])}
+ function boxs(a,w,h,r){const t=new Float32Array(w*h),o=new Float32Array(w*h);
+  for(let y=0;y<h;y++){let s=0;for(let x=-r;x<=r;x++)s+=a[y*w+Math.min(w-1,Math.max(0,x))];for(let x=0;x<w;x++){t[y*w+x]=s;s+=a[y*w+Math.min(w-1,x+r+1)]-a[y*w+Math.max(0,x-r)]}}
+  for(let x=0;x<w;x++){let s=0;for(let y=-r;y<=r;y++)s+=t[Math.min(h-1,Math.max(0,y))*w+x];for(let y=0;y<h;y++){o[y*w+x]=s;s+=t[Math.min(h-1,y+r+1)*w+x]-t[Math.max(0,y-r)*w+x]}}return o}
+ function maxf(a,w,h,r){const t=new Float32Array(w*h),o=new Float32Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){let m=0;for(let d=-r;d<=r;d++){const X=x+d;if(X>=0&&X<w){const v=a[y*w+X];if(v>m)m=v}}t[y*w+x]=m}
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){let m=0;for(let d=-r;d<=r;d++){const Y=y+d;if(Y>=0&&Y<h){const v=t[Y*w+x];if(v>m)m=v}}o[y*w+x]=m}return o}
+ // search scoring on dilated |gx|,|gy| (tolerant to small misses) minus the flat-area term
+ const S1=pack(sub(36)),S2=pack(sub(200)),F1=FL.slice(0,2*24);
+ function nn(a,w,h,x,y){x=x|0;y=y|0;return x<0||y<0||x>=w||y>=h?0:a[y*w+x]}
+ // similarity pose + squeeze q along the photo's vertical (camera tilted towards the cart)
+ function sScore(D,P,F,cx,cy,s,ca,sa,q=1){const w=D.w,h=D.h;let v=0,W=0;const n=P.length/5,sq=s*q;
+  for(let i=0;i<n;i++){const X=P[i*5]-.5,Y=P[i*5+1]-R/2,nx=P[i*5+2],ny=P[i*5+3],wt=P[i*5+4];
+   const x=cx+s*(ca*X-sa*Y)+.5,y=cy+sq*(sa*X+ca*Y)+.5;if(x<0||y<0||x>=w||y>=h){W+=wt;continue}const j=(y|0)*w+(x|0);
+   let mx=ca*nx-sa*ny,my=(sa*nx+ca*ny)/q;const ml=Math.hypot(mx,my);
+   v+=wt*(D.dx[j]*Math.abs(mx)+D.dy[j]*Math.abs(my))/ml;W+=wt}
+  let f=0;const m=F.length/2;for(let i=0;i<m;i++){const X=F[i*2]-.5,Y=F[i*2+1]-R/2,x=cx+s*(ca*X-sa*Y)+.5,y=cy+sq*(sa*X+ca*Y)+.5;f+=(x<0||y<0||x>=w||y>=h)?.3:D.mn[(y|0)*w+(x|0)]}
+  return v/W-f/m}
+ // precomputed rotated/squeezed template for one (angle, squeeze): unit offsets + weights for |dx|,|dy|
+ function rot(P,F,a,q){const ca=Math.cos(a),sa=Math.sin(a),n=P.length/5,m=F.length/2,o=new Float32Array(n*4),fo=new Float32Array(m*2);let W=0;
+  for(let i=0;i<n;i++){const X=P[i*5]-.5,Y=P[i*5+1]-R/2,nx=P[i*5+2],ny=P[i*5+3],wt=P[i*5+4];const mx=ca*nx-sa*ny,my=(sa*nx+ca*ny)/q,ml=Math.hypot(mx,my);
+   o[i*4]=ca*X-sa*Y;o[i*4+1]=q*(sa*X+ca*Y);o[i*4+2]=wt*Math.abs(mx)/ml;o[i*4+3]=wt*Math.abs(my)/ml;W+=wt}
+  for(let i=0;i<n;i++){o[i*4+2]/=W;o[i*4+3]/=W}
+  for(let i=0;i<m;i++){const X=F[i*2]-.5,Y=F[i*2+1]-R/2;fo[i*2]=ca*X-sa*Y;fo[i*2+1]=q*(sa*X+ca*Y)}
+  return {o,fo,n,m}}
+ function fScore(D,T,cx,cy,s){const w=D.w,h=D.h,o=T.o,fo=T.fo,dx=D.dx,dy=D.dy,mn=D.mn;let v=0,f=0;cx+=.5;cy+=.5;
+  for(let i=0;i<T.n;i++){const x=cx+s*o[i*4],y=cy+s*o[i*4+1];if(x<0||y<0||x>=w||y>=h)continue;const j=(y|0)*w+(x|0);v+=o[i*4+2]*dx[j]+o[i*4+3]*dy[j]}
+  for(let i=0;i<T.m;i++){const x=cx+s*fo[i*2],y=cy+s*fo[i*2+1];f+=(x<0||y<0||x>=w||y>=h)?.3:mn[(y|0)*w+(x|0)]}
+  return v-f/T.m}
+ function search(L,NT=6){let T0=Date.now();const li=L.findIndex(l=>Math.max(l.w,l.h)<=SLV),l=L[li],md=Math.min(l.w,l.h);
+  const ad=l.ax.map(Math.abs),bd=l.ay.map(Math.abs),DD={};
+  const getD=r=>DD[r]||(DD[r]={w:l.w,h:l.h,dx:maxf(ad,l.w,l.h,r),dy:maxf(bd,l.w,l.h,r),mn:l.mn});
+  const dl=dirs(L[Math.max(0,li-1)]),A=[];for(const d of dl)for(const o of OFFS)for(let q=0;q<4;q++)A.push((d+o+q*90)*Math.PI/180);
+  let c1=[],thr=-9;const RT={};const keep=c=>{c1.push(c);if(c1.length>6000){c1.sort((p,q)=>q[0]-p[0]);c1.length=1500;thr=c1[1499][0]}};
+  for(let s=md*.25;s<=Math.max(l.w,l.h)*.9;s*=SCL){const r=Math.max(1,Math.min(6,Math.round(s*DIL))),D=getD(r),st=Math.max(1,s*STEP);
+   for(const q of SQ)for(const a of A){const Tk=a+'_'+q,TT=RT[Tk]||(RT[Tk]=rot(S1,F1,a,q));
+    for(let cy=s*.25*q;cy<l.h-s*.25*q;cy+=st*q)for(let cx=s*.25;cx<l.w-s*.25;cx+=st){const v=fScore(D,TT,cx,cy,s);if(v>thr)keep([v,cx,cy,s,a,r,q])}}}
+  tm('s1',T0);T0=Date.now();c1.sort((p,q)=>q[0]-p[0]);c1=c1.slice(0,1500).map(c=>{const D=getD(c[5]);c[0]=sScore(D,S2,FL,c[1],c[2],c[3],Math.cos(c[4]),Math.sin(c[4]),c[6]);return c});
+  c1.sort((p,q)=>q[0]-p[0]);const top=[],near=(t,c)=>Math.hypot(t[1]-c[1],t[2]-c[2])<=.25*Math.min(t[3],c[3])&&Math.abs(Math.log(t[3]/c[3]))<=.3;
+  for(const c of c1){if(top.every(t=>!near(t,c)))top.push(c);if(top.length>=NT)break}
+  // each place in all 4 orientations (a cart turned a quarter can look almost as good this small)
+  tm('s2',T0);T0=Date.now();const out=[],sc=2**li;
+  for(const t of top)for(let q=0;q<4;q++){const D=getD(t[5]);let p=[t[1],t[2],t[3],t[4]+q*Math.PI/2,t[6]];
+   const f=p=>sScore(D,S2,FL,p[0],p[1],p[2],Math.cos(p[3]),Math.sin(p[3]),p[4]);let v=f(p);
+   for(const k of [1,.5,.25]){let imp=true,it=0;while(imp&&it++<12){imp=false;
+     for(const d of [[1,0,0,0,0],[-1,0,0,0,0],[0,1,0,0,0],[0,-1,0,0,0],[0,0,1,0,0],[0,0,-1,0,0],[0,0,0,1,0],[0,0,0,-1,0],[0,0,0,0,1],[0,0,0,0,-1]]){
+      const n=[p[0]+d[0]*k*.04*p[2],p[1]+d[1]*k*.04*p[2],p[2]*(1+d[2]*k*.04),p[3]+d[3]*k*.05,Math.min(1.1,Math.max(.45,p[4]+d[4]*k*.05))];const w=f(n);if(w>v){v=w;p=n;imp=true}}}}
+   out.push({v,Q:simQuad(p[0]*sc,p[1]*sc,p[2]*sc,p[3],p[4])})}
+  tm('s3',T0);return out}
+ // a plausible photographed cart: convex, corner angles 35°–145°, opposite sides within 2.2x, top/side ratio sane
+ function sane(Q){let sg=0;for(let i=0;i<4;i++){const a=Q[i],b=Q[(i+1)%4],c=Q[(i+2)%4];const ux=b[0]-a[0],uy=b[1]-a[1],vx=c[0]-b[0],vy=c[1]-b[1];
+   const cr=ux*vy-uy*vx,lu=Math.hypot(ux,uy),lv=Math.hypot(vx,vy);if(lu<8||lv<8)return false;const s=Math.sign(cr);if(sg&&s!==sg)return false;sg=s;
+   const ang=Math.acos(Math.max(-1,Math.min(1,-(ux*vx+uy*vy)/lu/lv)))*180/Math.PI;if(ang<35||ang>145)return false}
+  const d=(i,j)=>Math.hypot(Q[i][0]-Q[j][0],Q[i][1]-Q[j][1]),t=d(0,1),b=d(3,2),l=d(0,3),r=d(1,2);
+  if(Math.max(t,b)/Math.min(t,b)>2.2||Math.max(l,r)/Math.min(l,r)>2.2)return false;const as=(l+r)/(t+b);return as>.45&&as<2.6}
+ function refine(L,Q,lo=150,hi=1e9,ST=null){Q=Q.map(p=>p.slice());const sz=()=>Math.hypot(Q[1][0]-Q[0][0],Q[1][1]-Q[0][1]);let best=0;
+  for(let li=L.length-1;li>=0;li--){const sc=1/2**li,l=L[li],P=INNER?(li===0?P700i:P400i):RIMEN?(li===0?P700o:P400o):(li===0?PALL:P400);const md=Math.max(l.w,l.h);if(md<lo||md>hi)continue;
+   const fine=Math.max(l.w,l.h)>300;LAM=fine?0:.6;USEOFF=fine;RIMON=fine&&RIMEN;
+   best=quadScore(l,P,Q,sc);const steps=ST?ST(li):Math.max(l.w,l.h)<300?[.03,.015,.008]:li>=1?[.01,.005]:[.004,.002,.001];
+   for(const f of steps){let imp=true,it=0;while(imp&&it++<25){imp=false;const st=f*sz();
+     const cx=Q.reduce((a,p)=>a+p[0],0)/4,cy=Q.reduce((a,p)=>a+p[1],0)/4,ms=[];
+     for(const d of [-1,1]){ms.push(Q.map(p=>[p[0]+d*st,p[1]]),Q.map(p=>[p[0],p[1]+d*st]));
+      const k=1+d*f;ms.push(Q.map(p=>[cx+(p[0]-cx)*k,cy+(p[1]-cy)*k]));
+      const a=d*f,ca=Math.cos(a),sa=Math.sin(a);ms.push(Q.map(p=>[cx+(p[0]-cx)*ca-(p[1]-cy)*sa,cy+(p[0]-cx)*sa+(p[1]-cy)*ca]));
+      for(let c=0;c<4;c++)for(let ax=0;ax<2;ax++){const m=Q.map(p=>p.slice());m[c][ax]+=d*st;ms.push(m)}
+      // whole side in/out along its normal (trims a side off a shadow without twisting the others)
+      for(let k=0;k<4;k++){const a=Q[k],b=Q[(k+1)%4],ex=b[0]-a[0],ey=b[1]-a[1],el=Math.hypot(ex,ey)||1,nx=-ey/el*d*st,ny=ex/el*d*st,m=Q.map(p=>p.slice());
+       m[k][0]+=nx;m[k][1]+=ny;m[(k+1)%4][0]+=nx;m[(k+1)%4][1]+=ny;ms.push(m)}}
+     for(const m of ms){if(!sane(m))continue;const v=quadScore(l,P,m,sc);if(v>best+1e-6){best=v;Q=m;imp=true}}}}}
+  return {Q,score:best}}
+ // final judge: full edge set + flat areas at a mid level (sees the banner/ridges vs the arrow: orientation)
+ function judge(L,Q){const li=Math.max(0,L.findIndex(l=>Math.max(l.w,l.h)<=520));const o=[LAM,USEOFF];const ro=RIMON;RIMON=false;
+  LAM=0;USEOFF=true;const a=quadScore(L[li],PALL,Q,1/2**li);LAM=.6;USEOFF=false;const b=quadScore(L[li],PALL,Q,1/2**li);[LAM,USEOFF]=o;RIMON=ro;return a+b}
+ function relabel(Q,k){return [0,1,2,3].map(i=>Q[(i+k)%4])}
+ // turn a quad a quarter: same centre/size, corners relabelled, then the cart's aspect fixed by the short refine
+ function quarter(Q,k){const c=[0,1,2,3].map(i=>Q[(i+k)%4]);if(k%2===0)return c;
+  const cx=c.reduce((a,p)=>a+p[0],0)/4,cy=c.reduce((a,p)=>a+p[1],0)/4,f=[[1/R,1],[1/R,1]];
+  // squeeze along the new top edge / stretch along the new side so the aspect is right again
+  const ux=[(c[1][0]-c[0][0]+c[2][0]-c[3][0])/2,(c[1][1]-c[0][1]+c[2][1]-c[3][1])/2],vy=[(c[3][0]-c[0][0]+c[2][0]-c[1][0])/2,(c[3][1]-c[0][1]+c[2][1]-c[1][1])/2];
+  const lu=Math.hypot(...ux),lv=Math.hypot(...vy),g=Math.sqrt(lu*lv/R),su=g/lu,sv=g*R/lv;
+  return c.map(p=>{const dx=p[0]-cx,dy=p[1]-cy,a=(dx*ux[0]+dy*ux[1])/lu/lu,b=(dx*vy[0]+dy*vy[1])/lv/lv;
+   return [cx+a*ux[0]*su+b*vy[0]*sv,cy+a*ux[1]*su+b*vy[1]*sv]})}
+ function find(L,extra=[]){let t0=Date.now();const cs=[];for(const lv of SLVS){SLV=lv;cs.push(...search(L,6))}tm('search',t0);t0=Date.now();
+  for(const Q of extra)for(let k=0;k<4;k++)cs.push({v:0,Q:quarter(Q,k)});
+  // pre-screen every start on a ~250px view, keep the best few
+  const li=Math.max(0,L.findIndex(l=>Math.max(l.w,l.h)<=260)),o=[LAM,USEOFF];LAM=.6;USEOFF=false;
+  for(const c of cs)c.p=quadScore(L[li],P400,c.Q,1/2**li);[LAM,USEOFF]=o;cs.sort((a,b)=>b.p-a.p);tm('pre',t0);t0=Date.now();
+  let R1=cs.slice(0,NPRE).map(c=>{const r=refine(L,c.Q,150,300);r.j=judge(L,r.Q);return r});tm('low',t0);t0=Date.now();
+  R1.sort((a,b)=>b.j-a.j);R1=R1.slice(0,4).map(r=>{const q=refine(L,r.Q,301,600);q.j=judge(L,q.Q);return q});
+  // same outline, other corner labels (the outline can fit while the cart's top is on another side)
+  for(const r of R1.slice()){for(let k=1;k<4;k++){const Q=relabel(r.Q,k),j=judge(L,Q);if(j>r.j-.08){const q=refine(L,Q,301,600);q.j=judge(L,q.Q);R1.push(q)}}}
+  tm('mid',t0);t0=Date.now();
+  R1.sort((a,b)=>b.j-a.j);const f=refine(L,R1[0].Q,601);f.j=judge(L,f.Q);tm('fine',t0);
+  // shadow trim: same cart, same orientation; pull any side that sits on the cart's shadow or side wall back onto the plastic
+  if(MODE==='snap'){t0=Date.now();const g=snap(L,f.Q);tm('snap',t0);return {Q:g,score:f.score,j:f.j}}
+  if(MODE==='band'){t0=Date.now();const l=L[0],w=Math.hypot(f.Q[1][0]-f.Q[0][0],f.Q[1][1]-f.Q[0][1]);let Q=f.Q.map(p=>p.slice());
+   // samples of one side at inset d (cart widths), in this quad's frame
+   const SIDE=[[],[],[],[]];for(let v=.2;v<=.95;v+=.02)if(v<.38||v>.46){SIDE[3].push([0,v*R,1,0]);SIDE[1].push([1,v*R,-1,0])}
+   for(let u=.08;u<=.92;u+=.02){if(u<.36||u>.64)SIDE[2].push([u,R,0,-1]);if(u<=.85)SIDE[0].push([u,0,0,1])}
+   const bandOf=(Q,k)=>{const H=homog([[0,0],[1,0],[1,R],[0,R]],Q);const top=k===0,ds=top?[.005,.01,.015,.02]:[.005,.01,.015,.02,.025,.03],rs=top?[.035,.04,.045]:[.07,.08,.09];
+     let tot=0;for(const d of ds){let a=0,rr=0;for(const [X,Y,nx,ny] of SIDE[k]){a+=hp(l,H,X+nx*d,Y+ny*d);let r=0;for(const q of rs)r+=hp(l,H,X+nx*q,Y+ny*q);rr+=r/rs.length}tot+=Math.abs(a-rr)/SIDE[k].length}return tot/ds.length};
+   for(let pass=0;pass<2;pass++)for(let k=0;k<4;k++){const a=Q[k],b=Q[(k+1)%4],ex=b[0]-a[0],ey=b[1]-a[1],el=Math.hypot(ex,ey)||1,nx=-ey/el,ny=ex/el;
+    let bo=0,bv=bandOf(Q,k);for(let o=-.005;o>=-.08;o-=.005){const m=Q.map(p=>p.slice());m[k][0]+=nx*o*w;m[k][1]+=ny*o*w;m[(k+1)%4][0]+=nx*o*w;m[(k+1)%4][1]+=ny*o*w;
+     if(!sane(m))continue;const v=bandOf(m,k)+BCOST*(-o*100);if(v<bv-1){bv=v;bo=o}}
+    if(bo){Q[k][0]+=nx*bo*w;Q[k][1]+=ny*bo*w;Q[(k+1)%4][0]+=nx*bo*w;Q[(k+1)%4][1]+=ny*bo*w}}
+   tm('band',t0);return {Q,score:f.score,j:f.j}}
+  if(MODE==='inner'||MODE==='inner2'){t0=Date.now();INNER=true;
+   let g=f;if(MODE==='inner2'){g=refine(L,f.Q,150,300,()=>[.04,.02,.01,.005]);}
+   g=refine(L,g.Q,301,1e9,li=>li>=1?[.02,.01,.005,.0025]:[.003,.0015,.001]);INNER=false;g.j=f.j;tm('inner',t0);return g}
+  if(RIMW>0){t0=Date.now();RIMEN=true;RIMON=true;LAM=0;USEOFF=true;
+   const li=Math.max(0,L.findIndex(l=>Math.max(l.w,l.h)<=520)),l=L[li],sc=1/2**li,w=Math.hypot(f.Q[1][0]-f.Q[0][0],f.Q[1][1]-f.Q[0][1]);
+   let Q=f.Q.map(p=>p.slice()),best=quadScore(l,P700o,Q,sc);
+   // each side: try every offset along its normal (8% in .. 3% out), keep the best; twice round
+   for(let pass=0;pass<2;pass++)for(let k=0;k<4;k++){const a=Q[k],b=Q[(k+1)%4],ex=b[0]-a[0],ey=b[1]-a[1],el=Math.hypot(ex,ey)||1,nx=-ey/el,ny=ex/el;
+     let bo=0;for(let o=-.08;o<-.001;o+=.005){if(Math.abs(o)<1e-9)continue;const m=Q.map(p=>p.slice());m[k][0]+=nx*o*w;m[k][1]+=ny*o*w;m[(k+1)%4][0]+=nx*o*w;m[(k+1)%4][1]+=ny*o*w;
+      if(!sane(m))continue;const v=quadScore(l,P700o,m,sc);if(v>best){best=v;bo=o}}
+     if(bo){Q[k][0]+=nx*bo*w;Q[k][1]+=ny*bo*w;Q[(k+1)%4][0]+=nx*bo*w;Q[(k+1)%4][1]+=ny*bo*w}}
+   const g=refine(L,Q,601,1e9,()=>[.004,.002,.001]);RIMEN=false;RIMON=false;g.j=f.j;tm('trim',t0);return g}
+  return f}
+ function simAt(L,Q){const li=L.findIndex(l=>Math.max(l.w,l.h)<=150),l=L[li],sc=2**li;const cx=Q.reduce((a,p)=>a+p[0],0)/4/sc,cy=Q.reduce((a,p)=>a+p[1],0)/4/sc;
+  const a=Math.atan2(Q[1][1]-Q[0][1]+Q[2][1]-Q[3][1],Q[1][0]-Q[0][0]+Q[2][0]-Q[3][0]),s=(Math.hypot(Q[1][0]-Q[0][0],Q[1][1]-Q[0][1])+Math.hypot(Q[2][0]-Q[3][0],Q[2][1]-Q[3][1]))/2/sc;
+  const ad=l.ax.map(Math.abs),bd=l.ay.map(Math.abs);let best=-9;for(const r of [1,2,3]){const D={w:l.w,h:l.h,dx:maxf(ad,l.w,l.h,r),dy:maxf(bd,l.w,l.h,r),mn:l.mn};best=Math.max(best,sScore(D,S2,FL,cx,cy,s,Math.cos(a),Math.sin(a)))}return best}
+ return {setR:(v,t)=>{RIMW=v;if(t)RT0=t},setS:v=>{SLV=v},T,simAt,dirs,judge,quarter,lev:level,set:(l,u)=>{LAM=l;USEOFF=u},prep,coarse,search,refine,find,R,quadScore,P:{P150,P400,PALL}}}
+
+
+// CART FIT END
 
 const $=id=>document.getElementById(id);
 // "English" switch: this copy of the game (exact code) has English language. Kept on this phone (localStorage dmgEnglish).
@@ -608,16 +837,34 @@ async function onPick(e){const inp=e.target,fs=[...inp.files],f=fs[0];inp.value=
  img.onerror=()=>{URL.revokeObjectURL(url);status('Could not read this image. Try another one.')};img.src=url;}
 $('file').addEventListener('change',onPick);
 
+// Cart finder. First the quick outline (detectCore) so something shows at once, then the cart matcher in a background
+// worker: it searches the whole photo for the DMG cart reference (outline, notch, ridges, banner, label window, arrow),
+// fits the 4 corners, picks the upright orientation and snaps each side onto the cart's face edge (not its shadow or side wall).
+// Its corners come back as TL,TR,BR,BL of the upright cart. Corners moved by hand meanwhile are kept.
+let detW=null,detJob=0;
+function detWorker(){if(detW)return detW;try{
+ const js=`${homog.toString()}const CART_REF=${JSON.stringify(CART_REF)};const FIT=(${makeFit.toString()})(CART_REF,homog);
+onmessage=e=>{const d=e.data;let r=null;try{const L=FIT.prep(d.g,d.w,d.h),b=FIT.find(L,d.seeds);r={Q:b.Q}}catch(x){}postMessage({id:d.id,r})}`;
+ detW=new Worker(URL.createObjectURL(new Blob([js],{type:'text/javascript'})))}catch(e){detW=null}return detW}
 function runDetect(){status('Looking for the cart…');setTimeout(()=>{
  const s=Math.min(1,MAXDET/Math.max(src.width,src.height)),w=Math.round(src.width*s),h=Math.round(src.height*s);
  const t=document.createElement('canvas');t.width=w;t.height=h;const tc=t.getContext('2d',{willReadFrequently:true});tc.drawImage(src,0,0,w,h);
  let q=null;try{q=detectCore(tc.getImageData(0,0,w,h).data,w,h)}catch(e){q=null}
  if(q){quad=q.q.map(p=>[p[0]/s,p[1]/s]);fitQuad();status('Cart found · drag corners · pinch to zoom',true)}
  else{quad=inset();fitPhoto();status('Cart not found. Drag the 4 corners onto it.')}
- // Orientation: the DMG cart's notch is its top right. If it was spotted, use it;
- // otherwise assume the photo was taken upright: top of the photo = top of the cart.
  userRot=codeRot=false;rot=q&&q.cut>=0?(q.cut+3)%4:0;if(!(q&&q.cut>=0))longUp();
- draw();render();},30);}
+ draw();render();
+ const s2=Math.min(1,1000/Math.max(src.width,src.height)),W=Math.round(src.width*s2),H=Math.round(src.height*s2);
+ // grey photo at <=1000px by block averaging (browsers' own downscale can alias, and the matcher is sensitive to that)
+ const g=new Float32Array(W*H),cnt=new Float32Array(W*H),sw=src.width,sh=src.height,fx=W/sw,fy=H/sh;
+ for(let y=0;y<sh;y++){const yy=Math.min(H-1,(y*fy)|0)*W;for(let x=0;x<sw;x++){const i=(y*sw+x)*4,j=yy+Math.min(W-1,(x*fx)|0);g[j]+=srcData[i]*.3+srcData[i+1]*.59+srcData[i+2]*.11;cnt[j]++}}
+ for(let i=0;i<W*H;i++)g[i]/=cnt[i]||1;
+ const seeds=q?[q.q.map(p=>[p[0]/s*s2,p[1]/s*s2])]:[],job=++detJob,mySrc=src,snap=JSON.stringify(quad),wk=detWorker();
+ const done=r=>{if(job!==detJob||src!==mySrc||!r||!r.Q||JSON.stringify(quad)!==snap)return;
+  quad=r.Q.map(p=>[p[0]/s2,p[1]/s2]);rot=0;userRot=codeRot=false;fitQuad();status('Cart found · drag corners · pinch to zoom',true);draw();render()};
+ if(wk){wk.onmessage=e=>{if(e.data.id===job)done(e.data.r)};wk.onerror=()=>{detW=null};wk.postMessage({id:job,g,w:W,h:H,seeds},[g.buffer])}
+ else setTimeout(()=>{let r=null;try{const F=window._FIT||(window._FIT=makeFit(CART_REF,homog)),L=F.prep(g,W,H);r={Q:F.find(L,seeds).Q}}catch(e){}done(r)},30);
+ },30);}
 // The cart is taller than wide: if the selection's longer side would come out horizontal, turn it a quarter (the code reader then fixes up/down).
 function longUp(){if(userRot||codeRot||!quad)return;const Q=[0,1,2,3].map(i=>quad[(i+rot)%4]);
  if(dist(Q[0],Q[1])+dist(Q[3],Q[2])>dist(Q[0],Q[3])+dist(Q[1],Q[2]))rot=(rot+3)%4}
