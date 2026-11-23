@@ -258,6 +258,12 @@ html.rot.cw body{transform:translateX(100vw) rotate(90deg);--st:env(safe-area-in
 #gPh{position:relative}#gPh.tap{cursor:pointer;-webkit-tap-highlight-color:transparent}
 #gPh .pw{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(20,20,22,.55);display:grid;place-items:center;color:#fff;opacity:.9;pointer-events:none}
 .fab[hidden]{display:none}
+/* Game note: under English, fills down to the photo's bottom; right gap = the photo's left gap (14px). */
+#gv .gtx{flex:1;min-width:0;align-self:stretch;padding-right:14px;padding-bottom:0}
+#gN{flex:1 1 0;height:0;min-height:30px;margin-top:4px;width:100%;resize:none;border:0;border-radius:10px;padding:8px 10px;background:#26232a;color:#e8e6ea;font:13px/1.35 Inter,system-ui,sans-serif;outline:none;-webkit-user-select:text;user-select:text}
+#gv .gyr{display:flex;align-items:center;gap:8px;min-height:18px;white-space:nowrap}#gv .gyr #gYi{height:24px;width:64px;flex:none}
+#gv .gen{display:flex;align-items:center;gap:8px;margin-top:4px}#gv .gen .sw,#gv .gen .cust{margin-top:0}#gv .gen .cust{font-size:0;width:20px;padding:0 2px;justify-content:center;flex:none} /* Edited/Added: pencil-only pill beside English (text kept for screen readers via title) */
+#gN::placeholder{color:#5f5a66}#gN:not([readonly]){box-shadow:inset 0 0 0 1px #3a3640}
 .cart.fade{opacity:.35} /* catalog: not owned, but a variant has a photo */
 /* Backup: Deleted games (built-in games removed with Delete game) → list with Restore. */
 .delb{display:flex;align-items:center;gap:8px;width:100%;height:38px;padding:0 14px;border-radius:19px;border:0;background:#2a2730;color:#e8e6ea;font:600 14px Inter,sans-serif;flex:none}
@@ -339,7 +345,7 @@ html.rot.cw body{transform:translateX(100vw) rotate(90deg);--st:env(safe-area-in
   </div>
   <div class="ghead">
     <div class="gph" id="gPh"></div>
-    <div class="gtx"><span id="gY"></span><input id="gYi" hidden inputmode="numeric" maxlength="4" placeholder="Year" autocomplete="off" enterkeyhint="done"><span class="own" id="gO"></span><button class="sw" id="enG" role="switch" aria-checked="false">English<i></i></button><span class="cust" id="gC" hidden></span></div>
+    <div class="gtx"><div class="gyr"><span id="gY"></span><input id="gYi" hidden inputmode="numeric" maxlength="4" placeholder="Year" autocomplete="off" enterkeyhint="done"></div><span class="own" id="gO"></span><div class="gen"><button class="sw" id="enG" role="switch" aria-checked="false">English<i></i></button><span class="cust" id="gC" hidden></span></div><textarea id="gN" maxlength="500" placeholder="Note" readonly spellcheck="false" aria-label="Note"></textarea></div>
   </div>
   <div class="card vars" id="gVars"></div>
   <div class="two solo" id="gRow"><button id="gForget" hidden>Forget photo</button><button id="gEdit">Edit game</button></div>
@@ -1177,6 +1183,10 @@ $('addImg').addEventListener('click',async()=>{const b=$('addImg'),v=$('code').v
 function ownBtn(v){imgBtn();const b=$('own'),ok=BY_CODE.has(v);b.disabled=!ok||!!scanEd; // re-editing a photo from Edit game: ownership is set there
 b.textContent=ok&&OWN_CODES.has(v)?'Remove from collection':'Add to collection';
  const e=$('enS');e.disabled=!ok;e.setAttribute('aria-checked',ok&&ENG.has(v)?'true':'false')}
+// Notes: one per game, kept on this phone (dmgNotes {key: text}); key = 'k'+built-in key or 'u'+added-game id. Edited with Edit game, saved with Save.
+let NOTES=(()=>{try{const o=JSON.parse(localStorage.getItem('dmgNotes')||'{}');return o&&typeof o==='object'&&!Array.isArray(o)?o:{}}catch(e){return {}}})();
+const noteKey=G=>G&&G.k!=null?'k'+G.k:G&&G.u!=null?'u'+G.u:null;
+function saveNotes(){try{localStorage.setItem('dmgNotes',JSON.stringify(NOTES))}catch(e){}}
 function setEnglish(c,on){on?ENG.add(c):ENG.delete(c);markEdit();try{localStorage.setItem('dmgEnglish',JSON.stringify([...ENG]))}catch(e){}}
 $('enS').addEventListener('click',()=>{const v=$('code').value.trim().toUpperCase();if(!BY_CODE.has(v))return;setEnglish(v,!ENG.has(v));ownBtn(v)});
 function applyOwn(v,add,drop=[]){const s=new Set(OWN_CODES);drop.forEach(c=>s.delete(c));add?s.add(v):s.delete(v);setOwned([...s]);
@@ -1415,16 +1425,17 @@ const pickSel=i=>{const mine=OWN_GAMES.get(i)||[];return photoCode(i)||GAMES[i][
 function openGame(i){gIdx=i;endEdit();gSel=pickSel(i);go('gv')}
 function openNew(){gIdx=-1;gSel=null;endEdit();go('gv');gNew=true;startEdit(['','',''])}
 function startEdit(G){gEditing=true;gArm=false;gForgot=new Set();gPhD=new Map();gRows=(G[1]||[]).map(c=>({o:c,c,own:OWN_CODES.has(c)}));if(!gRows.length)gRows.push({o:null,c:'',own:true});
- $('gTi').value=G[0];$('gYi').value=G[2]||'';['gTi','gYi'].forEach(id=>$(id).classList.remove('bad'));drawGame();if(gNew)setTimeout(()=>$('gTi').focus(),50)}
+ $('gTi').value=G[0];$('gYi').value=G[2]||'';$('gN').value=gNew?'':NOTES[noteKey(G)]||'';['gTi','gYi'].forEach(id=>$(id).classList.remove('bad'));drawGame();if(gNew)setTimeout(()=>$('gTi').focus(),50)}
 function endEdit(){gEditing=false;gRows=null;gForgot=null;gPhD=null;gArm=false;if(gNew){gNew=false}}
 const rowCodes=()=>gRows.map(r=>r.c.trim().toUpperCase());
 const isOwn=c=>gEditing?gRows.some(r=>r.c.trim().toUpperCase()===c&&r.own):OWN_CODES.has(c),hasPh=c=>(PHOTOS.has(c)||!!(gEditing&&gPhD.has(c)))&&!(gEditing&&gForgot.has(c));
 async function drawGame(){const i=gIdx,G=gNew?[$('gTi').value,rowCodes().filter(Boolean),$('gYi').value]:GAMES[i];if(!G)return;
  if(!gNew&&!G[1].includes(gSel))gSel=pickSel(i);
  const sel=gSel,own=sel&&isOwn(sel),has=sel&&hasPh(sel),codes=gEditing?rowCodes().filter(Boolean):G[1],mine=codes.filter(isOwn);
+ {const n=$('gN');n.readOnly=!gEditing;if(!gEditing)n.value=NOTES[noteKey(G)]||''}
  $('gT').textContent=G[0];$('gT').hidden=gEditing;$('gTi').hidden=!gEditing;$('gYi').hidden=!gEditing;
  $('gY').textContent=gEditing?`${codes.length} variant${codes.length===1?'':'s'}`:`${G[2]} · ${G[1].length} variant${G[1].length>1?'s':''}`;
-const mineG=!gNew&&isMine(i);$('gC').hidden=!mineG&&!gNew;$('gC').innerHTML=PEN+(gNew||G.u!=null?'Added':'Edited');
+const mineG=!gNew&&isMine(i);$('gC').hidden=!mineG&&!gNew;{const tx=gNew||G.u!=null?'Added':'Edited';$('gC').innerHTML=PEN+tx;$('gC').title=tx}
  $('gO').textContent=mine.length?`Owned · ${mine.length} of ${codes.length}`:'Missing';$('gO').className=mine.length?'own':'';
  $('enG').setAttribute('aria-checked',sel&&ENG.has(sel)?'true':'false');$('enG').setAttribute('aria-label','English · '+(sel||''));$('enG').disabled=!sel||gNew;
  $('gVars').classList.toggle('edit',gEditing);$('gEdit').classList.toggle('on',gEditing);$('gEdit').textContent=gEditing?'Save':'Edit game';
@@ -1463,6 +1474,7 @@ async function saveGame(){const old=gNew?null:GAMES[gIdx],t=$('gTi').value.trim(
  const newPh=[];for(const r of gRows){const c=r.c.trim().toUpperCase(),b=r.o&&gPhD.get(r.o);if(b&&!gForgot.has(r.o)&&!gForgot.has(c)){await keepPhoto(c,b,false);newPh.push(c)}} // photos adjusted in the scanner
  const g=[t,codes,+y];let u=null;if(old&&old.k){const b=BASE.find(x=>keyOf(x)===old.k); // unchanged from the built-in list (e.g. only owned ticks changed): not an edit
   if(b&&JSON.stringify(b)===JSON.stringify(g))delete MODS.e[old.k];else MODS.e[old.k]=g}else if(old){const x=MODS.n.find(x=>x.u===old.u);if(x)x.g=g;u=old.u}else{u=Date.now();MODS.n.push({u,g})}
+ {const nk=old&&old.k?'k'+old.k:'u'+u,nt=$('gN').value.trim();if(nt)NOTES[nk]=nt;else delete NOTES[nk];saveNotes()}
  commitGames([...own]);addRecent([...added,...newPh.filter(c=>own.has(c)&&!added.includes(c))]);const idx=GAMES.findIndex(x=>old&&old.k?x.k===old.k:x.u===u);
  const sel=gSel&&codes.includes(gSel)?gSel:null;gNew=false;endEdit();gIdx=idx;gSel=sel||pickSel(idx);drawGame()}
 // Reset: back to the built-in version; codes only my version had lose their ownership, English flag and photo.
@@ -1470,7 +1482,8 @@ async function resetGame(){const G=GAMES[gIdx];if(!G||G.k==null)return;const k=G
  for(const c of G[1])if(!b||!b[1].includes(c)){own.delete(c);await dropCode(c)}delete MODS.e[k];commitGames([...own]);endEdit();
  gIdx=GAMES.findIndex(x=>x.k===k);if(gIdx<0)return back();gSel=pickSel(gIdx);drawGame()}
 async function deleteGame(){const G=GAMES[gIdx];if(!G)return;const own=new Set(OWN_CODES);
- for(const c of G[1]){own.delete(c);await dropCode(c)}if(G.k)MODS.e[G.k]=null;else MODS.n=MODS.n.filter(x=>x.u!==G.u);commitGames([...own]);endEdit();gIdx=-1;back()}
+ for(const c of G[1]){own.delete(c);await dropCode(c)}delete NOTES[noteKey(G)];saveNotes();if(G.k)MODS.e[G.k]=null;else MODS.n=MODS.n.filter(x=>x.u!==G.u);commitGames([...own]);endEdit();gIdx=-1;back()}
+$('gN').addEventListener('click',()=>{if(gEditing||!GAMES[gIdx])return;startEdit(GAMES[gIdx]);const n=$('gN');n.focus();n.setSelectionRange(n.value.length,n.value.length)});
 $('gEdit').addEventListener('click',()=>{if(gEditing)return saveGame();if(GAMES[gIdx])startEdit(GAMES[gIdx])});
 // Not editing: tap a variant to show it. Editing: tick = owned, × = remove the row, fields edit name / year / codes.
 $('gVars').addEventListener('click',e=>{
@@ -1543,7 +1556,7 @@ async function drawBackup(msg){if(bkBusy)return;const job=++bkJob;bkPend=null;bk
  const keys=(await idb('readonly',s=>s.getAllKeys()))||[],recs=(await idb('readonly',s=>s.getAll()))||[],files=[],ph={};
  for(let k=0;k<keys.length;k++){if(job!==bkJob)return;const r=recs[k];if(!r||!r.full)continue;files.push({name:`photos/${keys[k]}.jpg`,data:new Uint8Array(await r.full.arrayBuffer())});ph[keys[k]]=r.t||0}
  if(job!==bkJob||cur!=='bk')return;
- files.unshift({name:'collection.json',data:new TextEncoder().encode(JSON.stringify({dmgdb:1,exported:new Date().toISOString(),mods:MODS,games:GAMES,owned:[...OWN_CODES],recent:recentList(),english:[...ENG],photos:ph}))});
+ files.unshift({name:'collection.json',data:new TextEncoder().encode(JSON.stringify({dmgdb:1,exported:new Date().toISOString(),mods:MODS,games:GAMES,owned:[...OWN_CODES],recent:recentList(),english:[...ENG],notes:NOTES,photos:ph}))});
  bkZip=zipBlob(files);bkShow(OWN_CODES.size,files.length-1,bkZip.size,msg||bkStamp());$('bEx').disabled=false}
 $('bEx').addEventListener('click',async()=>{if(bkPend)return bkRestore();if(!bkZip)return;
  const name=`dmgdb-backup-${new Date().toISOString().slice(0,10)}.zip`,file=new File([bkZip],name,{type:'application/zip'});
@@ -1564,6 +1577,7 @@ async function bkRestore(){const {z,col,photos}=bkPend;bkPend=null;bkBusy=true;b
    try{const full=new Blob([await entryBytes(z.get(photos[k]))],{type:'image/jpeg'}),thumb=await thumbOf(full);
     await idb('readwrite',s=>s.put({full,thumb,tv:3,t:(col.photos||{})[code]||Date.now()},code));PHOTOS.add(code);n++}catch(e){}}
   {const m=okMods(col.mods)?col.mods:okGames(col.games)?modsFrom(col.games):null;if(m){MODS=m;saveMods();buildGames();indexGames();built=false}} // backups carry my game-list changes
+  NOTES=col.notes&&typeof col.notes==='object'&&!Array.isArray(col.notes)?col.notes:{};saveNotes();
   setOwned(col.owned);ENG.clear();(Array.isArray(col.english)?col.english:[]).forEach(c=>ENG.add(c));
   try{localStorage.setItem('dmgOwned',JSON.stringify([...OWN_CODES]));localStorage.setItem('dmgRecent',JSON.stringify(Array.isArray(col.recent)?col.recent.slice(-60):[]));localStorage.setItem('dmgEnglish',JSON.stringify([...ENG]))}catch(e){}
  }catch(e){}
