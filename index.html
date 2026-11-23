@@ -585,7 +585,7 @@ function makeFit(REF,homog){
  const shuf=all; // stored already shuffled
  const sub=n=>shuf.slice(0,n);
  function pack(ps,ow=1){const n=ps.length,a=new Float32Array(n*5);ps.forEach((p,i)=>{const out=p.x<.03||p.x>.97||p.y<.03||p.y>R-.03;a[i*5]=p.x;a[i*5+1]=p.y;a[i*5+2]=p.nx;a[i*5+3]=p.ny;a[i*5+4]=p.w*(out?ow:1)});return a}
- const P150=pack(sub(160)),P400=pack(sub(450)),P700=pack(sub(700)),PALL=pack(shuf.slice(0,1400));let OWF=+((typeof process!=='undefined'&&process.env&&process.env.OWF)||.35);const P400o=pack(sub(450),OWF),P700o=pack(sub(700),OWF),P400i=pack(sub(450),0),P700i=pack(sub(700),0);let BCOST=+((typeof process!=='undefined'&&process.env&&process.env.BCOST)||1.5),INNER=false,MODE=(typeof process!=='undefined'&&process.env&&process.env.MODE)||'snap';
+ const P150=pack(sub(160)),P400=pack(sub(450)),P700=pack(sub(700)),PALL=pack(shuf.slice(0,1400));let OWF=+((typeof process!=='undefined'&&process.env&&process.env.OWF)||.35);const P400o=pack(sub(450),OWF),P700o=pack(sub(700),OWF),P400i=pack(sub(450),0),P700i=pack(sub(700),0);let SHARP=+((typeof process!=='undefined'&&process.env&&process.env.SHARP)||.8),SNAPN=+((typeof process!=='undefined'&&process.env&&process.env.SNAPN)||2),BCOST=+((typeof process!=='undefined'&&process.env&&process.env.BCOST)||1.5),INNER=false,MODE=(typeof process!=='undefined'&&process.env&&process.env.MODE)||'snap';
  function level(g,w,h,r=1){const b=new Float32Array(w*h);
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){let s=0,n=0;for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const X=x+dx,Y=y+dy;if(X>=0&&Y>=0&&X<w&&Y<h){s+=g[Y*w+X];n++}}b[y*w+x]=s/n}
   const ax=new Float32Array(w*h),ay=new Float32Array(w*h),m=new Float32Array(w*h),mn=new Float32Array(w*h);
@@ -595,7 +595,11 @@ function makeFit(REF,homog){
   const smp=[];for(let i=0;i<m.length;i+=7)smp.push(m[i]);smp.sort((a,b)=>a-b);const k=smp[(smp.length*.9)|0]+.5;
   for(let i=0;i<m.length;i++){const d=m[i]+k;ax[i]/=d;ay[i]/=d;mn[i]=m[i]/d}
   return {w,h,ax,ay,mn,g}}
- function prep(g,w,h){const L=[level(g,w,h)];let G=g,W=w,H=h;
+ // resample to a fixed working size (longest side WS) so the search grid and pyramid never depend on the photo's size
+ function rs(g,w,h,W,H){const o=new Float32Array(W*H),fx=w/W,fy=h/H;for(let y=0;y<H;y++){const sy=Math.min(h-1.001,Math.max(0,(y+.5)*fy-.5)),y0=sy|0,ty=sy-y0;
+   for(let x=0;x<W;x++){const sx=Math.min(w-1.001,Math.max(0,(x+.5)*fx-.5)),x0=sx|0,tx=sx-x0,i=y0*w+x0;o[y*W+x]=(g[i]*(1-tx)+g[i+1]*tx)*(1-ty)+(g[i+w]*(1-tx)+g[i+w+1]*tx)*ty}}return o}
+ function prep(g,w,h,WS=1024){const k=WS/Math.max(w,h);const W=Math.round(w*k),H=Math.round(h*k);const L=prep0(rs(g,w,h,W,H),W,H);L.k=k;return L}
+ function prep0(g,w,h){const L=[level(g,w,h)];let G=g,W=w,H=h;
   while(Math.max(W,H)>180){const W2=W>>1,H2=H>>1,o=new Float32Array(W2*H2);
    for(let y=0;y<H2;y++)for(let x=0;x<W2;x++){const i=2*y*W+2*x;o[y*W2+x]=(G[i]+G[i+1]+G[i+W]+G[i+W+1])/4}
    G=o;W=W2;H=H2;L.push(level(G,W,H))}
@@ -643,7 +647,12 @@ function makeFit(REF,homog){
   const at=(u,v)=>hp(l,H,u,v*R);
   // profile from (u0,v0) stepping (du,dv) n times; returns offset (in steps) of first sustained departure from the plastic, or -1
   const first=(u0,v0,du,dv,n)=>{const p=[];for(let i=0;i<n;i++)p.push(at(u0+du*i,v0+dv*i));const ref=p.slice(0,8).sort((a,b)=>a-b)[4],dev=p.slice(0,8).map(x=>Math.abs(x-ref)).sort((a,b)=>a-b)[4];
-   const T=Math.max(12,4*dev+4);for(let i=8;i<n-3;i++)if(Math.abs(p[i]-ref)>T&&Math.abs(p[i+1]-ref)>T&&Math.abs(p[i+2]-ref)>T)return i;return -1};
+   const T=Math.max(12,4*dev+4);
+   // a real edge is a sharp step (within ~1% of the cart width); light falling off across the plastic is gradual
+   const step=i=>{let m=0;for(let j=Math.max(3,i-3);j<=Math.min(n-4,i+2);j++)m=Math.max(m,Math.abs(p[j+3]-p[j-3]));return m};
+   for(let i=8;i<n-3;i++)if(Math.abs(p[i]-ref)>T&&Math.abs(p[i+1]-ref)>T&&Math.abs(p[i+2]-ref)>T){if(step(i)>T*SHARP)return i;
+    // gradual drift: re-base the plastic reference here and keep going outward
+    }return -1};
   const fitLine=(pts)=>{ // pts [t, x]: x = a + b t, robust (2 rounds of trimmed least squares)
    let use=pts;for(let r=0;r<3;r++){const n=use.length;if(n<6)return null;let st=0,sx=0,stt=0,stx=0;for(const [t,x] of use){st+=t;sx+=x;stt+=t*t;stx+=t*x}
     const b=(n*stx-st*sx)/(n*stt-st*st||1e-9),a=(sx-b*st)/n;const res=use.map(([t,x])=>Math.abs(x-a-b*t)).sort((p,q)=>p-q),cut=Math.max(.004,res[(n*.6)|0]*2);
@@ -653,14 +662,23 @@ function makeFit(REF,homog){
   {const p=[];for(const v of vs){const i=first(.92,v,st,0,100);if(i>0)p.push([v,.92+i*st-st])}sides.R=p.length>vs.length*.5?fitLine(p):null}
   {const p=[];for(const v of vs){const i=first(.08,v,-st,0,100);if(i>0)p.push([v,.08-i*st+st])}sides.L=p.length>vs.length*.5?fitLine(p):null}
   {const p=[],uu=us.filter(u=>u<.37||u>.63);for(const u of uu){const i=first(u,.905,0,st/R*1,110);if(i>0)p.push([u,.905+i*st/R-st/R])}sides.B=p.length>uu.length*.5?fitLine(p):null}
-  {const p=[],uu=us.filter(u=>u<.85);for(const u of uu){const i=first(u,.035,0,-st/R,70);if(i>0)p.push([u,.035-i*st/R+st/R])}sides.T=p.length>uu.length*.5?fitLine(p):null}
-  // lines in canonical (u,v): L/R: u=a+b v ; T/B: v=a+b u. Defaults = the fitted frame. Keep moves within -8%..+2%.
-  const ok=(ln,def,inward)=>ln&&Math.abs(ln.b)<.08&&((ln.a+ln.b*.5)-def)*inward<=.1&&((ln.a+ln.b*.5)-def)*inward>=-.02;
-  const Lx=ok(sides.L,0,1)?sides.L:{a:0,b:0},Rx=ok(sides.R,1,-1)?sides.R:{a:1,b:0},Ty=ok(sides.T,0,1)?sides.T:{a:0,b:0},By=ok(sides.B,1,-1)?sides.B:{a:1,b:0};
+  {const p=[],uu=us.filter(u=>u<.85);for(const u of uu){const i=first(u,.035,0,-st/R,90);if(i>0)p.push([u,.035-i*st/R+st/R])}sides.T=p.length>uu.length*.5?fitLine(p):null}
+  // Notch check (top right: the top edge runs flat to u≈.91, then steps down 5.5% to the notch floor; the notch wall stands at u≈.91).
+  // If the step is where the top line says it should be, the top line is confirmed.
+  let notchOK=false;
+  if(sides.T){const ta=u=>sides.T.a+sides.T.b*u,p=[];
+   for(let u=.93;u<=.975;u+=.005){const i=first(u,ta(u)+.08,0,-st/R,70);if(i>0)p.push(ta(u)+.08-i*st/R+st/R-ta(u))}
+   const w=[];for(let v=.012;v<=.04;v+=.004){const v0=ta(.88)+v,i=first(.85,v0,st,0,60);if(i>0)w.push(.85+i*st-st)}
+   if(p.length>=5&&w.length>=4){p.sort((a,b)=>a-b);w.sort((a,b)=>a-b);const d=p[p.length>>1],x=w[w.length>>1];
+    const xr=sides.R?sides.R.a+sides.R.b*.03:1;notchOK=Math.abs(d-.055)<.015&&Math.abs((x-.91)-(xr-1))<.02}}
+  // lines in canonical (u,v): L/R: u=a+b v ; T/B: v=a+b u. Defaults = the fitted frame. A side may move 10% in and 6% out
+  // (the top only out beyond 2% when the notch confirms it).
+  const ok=(ln,def,inward,lim=.06)=>ln&&Math.abs(ln.b)<.08&&((ln.a+ln.b*.5)-def)*inward<=.1&&((ln.a+ln.b*.5)-def)*inward>=-lim;
+  const Lx=ok(sides.L,0,1)?sides.L:{a:0,b:0},Rx=ok(sides.R,1,-1)?sides.R:{a:1,b:0},Ty=ok(sides.T,0,1,notchOK?.06:.02)?sides.T:{a:0,b:0},By=ok(sides.B,1,-1)?sides.B:{a:1,b:0};
   const cross=(V,Hl)=>{ // u=V.a+V.b v ; v=Hl.a+Hl.b u
    const u=(V.a+V.b*Hl.a)/(1-V.b*Hl.b),v=Hl.a+Hl.b*u;return [u,v]};
   const C=[cross(Lx,Ty),cross(Rx,Ty),cross(Rx,By),cross(Lx,By)];
-  if(typeof DBG!=='undefined')DBG.push({sides:Object.fromEntries(Object.entries(sides).map(([k,v])=>[k,v&&[+v.a.toFixed(4),+v.b.toFixed(4),v.n]]))});
+  if(typeof DBG!=='undefined')DBG.push({notchOK,sides:Object.fromEntries(Object.entries(sides).map(([k,v])=>[k,v&&[+v.a.toFixed(4),+v.b.toFixed(4),v.n]]))});
   return C.map(([u,v])=>{const X=u,Y=v*R,z=H[6]*X+H[7]*Y+1;return [(H[0]*X+H[1]*Y+H[2])/z,(H[3]*X+H[4]*Y+H[5])/z]})}
  function simQuad(cx,cy,s,a,q=1){const ca=Math.cos(a),sa=Math.sin(a);return [[0,0],[1,0],[1,R],[0,R]].map(([X,Y])=>{X-=.5;Y-=R/2;return [cx+s*(ca*X-sa*Y),cy+q*s*(sa*X+ca*Y)]})}
  // dominant edge direction (mod 90°) of the photo: the cart's sides dominate on a plain background
@@ -755,7 +773,12 @@ function makeFit(REF,homog){
   const lu=Math.hypot(...ux),lv=Math.hypot(...vy),g=Math.sqrt(lu*lv/R),su=g/lu,sv=g*R/lv;
   return c.map(p=>{const dx=p[0]-cx,dy=p[1]-cy,a=(dx*ux[0]+dy*ux[1])/lu/lu,b=(dx*vy[0]+dy*vy[1])/lv/lv;
    return [cx+a*ux[0]*su+b*vy[0]*sv,cy+a*ux[1]*su+b*vy[1]*sv]})}
- function find(L,extra=[]){let t0=Date.now();const cs=[];for(const lv of SLVS){SLV=lv;cs.push(...search(L,6))}tm('search',t0);t0=Date.now();
+ function find(L,extra=[]){const k=L.k||1;const r=find0(L,extra.map(Q=>Q.map(p=>[p[0]*k,p[1]*k])));r.Q=r.Q.map(p=>[p[0]/k,p[1]/k]);return r}
+ // two working sizes; the better-scoring fit wins (the search can miss at one grid and hit at the other)
+ let WSS=((typeof process!=='undefined'&&process.env&&process.env.WSS)||'1024').split(',').map(Number);
+ function findBest(g,w,h,extra=[]){let best=null;for(const WS of WSS){const L=prep(g,w,h,WS),r=find(L,extra);
+   const k=L.k,jj=judge(L,r.Q.map(p=>[p[0]*k,p[1]*k]));if(!best||jj>best.jj){best=r;best.jj=jj}}return best}
+ function find0(L,extra=[]){let t0=Date.now();const cs=[];for(const lv of SLVS){SLV=lv;cs.push(...search(L,6))}tm('search',t0);t0=Date.now();
   for(const Q of extra)for(let k=0;k<4;k++)cs.push({v:0,Q:quarter(Q,k)});
   // pre-screen every start on a ~250px view, keep the best few
   const li=Math.max(0,L.findIndex(l=>Math.max(l.w,l.h)<=260)),o=[LAM,USEOFF];LAM=.6;USEOFF=false;
@@ -764,10 +787,12 @@ function makeFit(REF,homog){
   R1.sort((a,b)=>b.j-a.j);R1=R1.slice(0,4).map(r=>{const q=refine(L,r.Q,301,600);q.j=judge(L,q.Q);return q});
   // same outline, other corner labels (the outline can fit while the cart's top is on another side)
   for(const r of R1.slice()){for(let k=1;k<4;k++){const Q=relabel(r.Q,k),j=judge(L,Q);if(j>r.j-.08){const q=refine(L,Q,301,600);q.j=judge(L,q.Q);R1.push(q)}}}
+  // always try the best two turned a quarter / half (outline re-proportioned): a near-square cart can lock on 90° off
+  R1.sort((a,b)=>b.j-a.j);for(const r of R1.slice(0,2))for(let k=1;k<4;k++){const q=refine(L,quarter(r.Q,k),150,600);q.j=judge(L,q.Q);R1.push(q)}
   tm('mid',t0);t0=Date.now();
   R1.sort((a,b)=>b.j-a.j);const f=refine(L,R1[0].Q,601);f.j=judge(L,f.Q);tm('fine',t0);
   // shadow trim: same cart, same orientation; pull any side that sits on the cart's shadow or side wall back onto the plastic
-  if(MODE==='snap'){t0=Date.now();const g=snap(L,f.Q);tm('snap',t0);return {Q:g,score:f.score,j:f.j}}
+  if(MODE==='snap'){t0=Date.now();let g=snap(L,f.Q);for(let k=1;k<SNAPN;k++)g=snap(L,g);tm('snap',t0);return {Q:g,score:f.score,j:f.j}}
   if(MODE==='band'){t0=Date.now();const l=L[0],w=Math.hypot(f.Q[1][0]-f.Q[0][0],f.Q[1][1]-f.Q[0][1]);let Q=f.Q.map(p=>p.slice());
    // samples of one side at inset d (cart widths), in this quad's frame
    const SIDE=[[],[],[],[]];for(let v=.2;v<=.95;v+=.02)if(v<.38||v>.46){SIDE[3].push([0,v*R,1,0]);SIDE[1].push([1,v*R,-1,0])}
@@ -795,7 +820,7 @@ function makeFit(REF,homog){
  function simAt(L,Q){const li=L.findIndex(l=>Math.max(l.w,l.h)<=150),l=L[li],sc=2**li;const cx=Q.reduce((a,p)=>a+p[0],0)/4/sc,cy=Q.reduce((a,p)=>a+p[1],0)/4/sc;
   const a=Math.atan2(Q[1][1]-Q[0][1]+Q[2][1]-Q[3][1],Q[1][0]-Q[0][0]+Q[2][0]-Q[3][0]),s=(Math.hypot(Q[1][0]-Q[0][0],Q[1][1]-Q[0][1])+Math.hypot(Q[2][0]-Q[3][0],Q[2][1]-Q[3][1]))/2/sc;
   const ad=l.ax.map(Math.abs),bd=l.ay.map(Math.abs);let best=-9;for(const r of [1,2,3]){const D={w:l.w,h:l.h,dx:maxf(ad,l.w,l.h,r),dy:maxf(bd,l.w,l.h,r),mn:l.mn};best=Math.max(best,sScore(D,S2,FL,cx,cy,s,Math.cos(a),Math.sin(a)))}return best}
- return {setR:(v,t)=>{RIMW=v;if(t)RT0=t},setS:v=>{SLV=v},T,simAt,dirs,judge,quarter,lev:level,set:(l,u)=>{LAM=l;USEOFF=u},prep,coarse,search,refine,find,R,quadScore,P:{P150,P400,PALL}}}
+ return {findBest,setR:(v,t)=>{RIMW=v;if(t)RT0=t},setS:v=>{SLV=v},T,simAt,dirs,judge,quarter,lev:level,set:(l,u)=>{LAM=l;USEOFF=u},prep,coarse,search,refine,find,R,quadScore,P:{P150,P400,PALL}}}
 
 
 // CART FIT END
@@ -826,7 +851,11 @@ async function onPick(e){const inp=e.target,fs=[...inp.files],f=fs[0];inp.value=
  const url=URL.createObjectURL(f),img=new Image();
  img.onload=()=>{const s=Math.min(1,MAXSRC/Math.max(img.naturalWidth,img.naturalHeight));
   src=document.createElement('canvas');src.width=Math.round(img.naturalWidth*s);src.height=Math.round(img.naturalHeight*s);
-  const c=src.getContext('2d',{willReadFrequently:true});c.drawImage(img,0,0,src.width,src.height);srcData=c.getImageData(0,0,src.width,src.height).data;
+  const c=src.getContext('2d',{willReadFrequently:true});
+  // shrink big photos in halving steps: one big jump in drawImage leaves jagged edges (Safari), which throws off the cart finder
+  let im=img,iw=img.naturalWidth,ih=img.naturalHeight;while(iw>src.width*2){const t=document.createElement('canvas');t.width=Math.ceil(iw/2);t.height=Math.ceil(ih/2);
+   const tc=t.getContext('2d');tc.imageSmoothingEnabled=true;tc.imageSmoothingQuality='high';tc.drawImage(im,0,0,t.width,t.height);im=t;iw=t.width;ih=t.height}
+  c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.drawImage(im,0,0,src.width,src.height);srcData=c.getImageData(0,0,src.width,src.height).data;
   URL.revokeObjectURL(url);$('code').value='';manual=false;ocrJob++;srcVer++;reading=false;pending=false;codeChanged();$('codeBox').hidden=false;$('empty').style.display='none';view.style.display='block';for(const id of ['auto','reset','flip'])$(id).disabled=false;
   const done=prior||(img.naturalWidth===OW&&img.naturalHeight===OH);
   if(done){const w=src.width,h=src.height;quad=[[0,0],[w,0],[w,h],[0,h]];rot=0;userRot=true;layout();fitPhoto();status('',true);draw();render();
@@ -844,7 +873,7 @@ $('file').addEventListener('change',onPick);
 let detW=null,detJob=0;
 function detWorker(){if(detW)return detW;try{
  const js=`${homog.toString()}const CART_REF=${JSON.stringify(CART_REF)};const FIT=(${makeFit.toString()})(CART_REF,homog);
-onmessage=e=>{const d=e.data;let r=null;try{const L=FIT.prep(d.g,d.w,d.h),b=FIT.find(L,d.seeds);r={Q:b.Q}}catch(x){}postMessage({id:d.id,r})}`;
+onmessage=e=>{const d=e.data;let r=null;try{r={Q:FIT.findBest(d.g,d.w,d.h,d.seeds).Q}}catch(x){}postMessage({id:d.id,r})}`;
  detW=new Worker(URL.createObjectURL(new Blob([js],{type:'text/javascript'})))}catch(e){detW=null}return detW}
 function runDetect(){status('Looking for the cart…');setTimeout(()=>{
  const s=Math.min(1,MAXDET/Math.max(src.width,src.height)),w=Math.round(src.width*s),h=Math.round(src.height*s);
@@ -863,7 +892,7 @@ function runDetect(){status('Looking for the cart…');setTimeout(()=>{
  const done=r=>{if(job!==detJob||src!==mySrc||!r||!r.Q||JSON.stringify(quad)!==snap)return;
   quad=r.Q.map(p=>[p[0]/s2,p[1]/s2]);rot=0;userRot=codeRot=false;fitQuad();status('Cart found · drag corners · pinch to zoom',true);draw();render()};
  if(wk){wk.onmessage=e=>{if(e.data.id===job)done(e.data.r)};wk.onerror=()=>{detW=null};wk.postMessage({id:job,g,w:W,h:H,seeds},[g.buffer])}
- else setTimeout(()=>{let r=null;try{const F=window._FIT||(window._FIT=makeFit(CART_REF,homog)),L=F.prep(g,W,H);r={Q:F.find(L,seeds).Q}}catch(e){}done(r)},30);
+ else setTimeout(()=>{let r=null;try{const F=window._FIT||(window._FIT=makeFit(CART_REF,homog)),r={Q:F.findBest(g,W,H,seeds).Q}}catch(e){}done(r)},30);
  },30);}
 // The cart is taller than wide: if the selection's longer side would come out horizontal, turn it a quarter (the code reader then fixes up/down).
 function longUp(){if(userRot||codeRot||!quad)return;const Q=[0,1,2,3].map(i=>quad[(i+rot)%4]);
