@@ -258,6 +258,14 @@ html.rot.cw body{transform:translateX(100vw) rotate(90deg);--st:env(safe-area-in
 #gPh{position:relative}#gPh.tap{cursor:pointer;-webkit-tap-highlight-color:transparent}
 #gPh .pw{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(20,20,22,.55);display:grid;place-items:center;color:#fff;opacity:.9;pointer-events:none}
 .fab[hidden]{display:none}
+/* Brightness slider (scanner, under the buttons; double-tap = back to normal). --p = fill in %. */
+.lum{display:flex;align-items:center;gap:8px;height:18px;color:#a9a4b0}.lum svg{flex:none}
+#lum{--p:50%;flex:1;min-width:0;height:18px;margin:0;background:none;-webkit-appearance:none;appearance:none;touch-action:none}
+#lum::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(90deg,#ab2b64 var(--p),#3a3640 var(--p))}
+#lum::-moz-range-track{height:4px;border-radius:2px;background:linear-gradient(90deg,#ab2b64 var(--p),#3a3640 var(--p))}
+#lum::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;margin-top:-7px;border-radius:50%;border:0;background:#e8e6ea;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+#lum::-moz-range-thumb{width:18px;height:18px;border-radius:50%;border:0;background:#e8e6ea}
+#lum:disabled{opacity:.4}
 #gRow.ed{margin-right:0} /* editing: no + button, the two buttons share the full width */
 </style>
 </head>
@@ -381,7 +389,7 @@ html.rot.cw body{transform:translateX(100vw) rotate(90deg);--st:env(safe-area-in
         <div class="split"><button class="btn" id="save" data-s="" hidden disabled><span class="lb"><span data-s="">Save</span><span data-s="saved">Saved ✓</span><span data-s="failed">Failed</span></span></button><button class="btn" id="addImg" data-s="" disabled><span class="lb"><span data-s="">Add image</span><span data-s="added">Added ✓</span></span></button></div>
         <button class="btn" id="own" disabled>Add to collection</button>
       </div>
-      <p class="meta one" id="saveMsg"></p>
+      <p class="meta one" id="saveMsg" hidden></p><div class="lum"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.5v2.2M10 16.3v2.2M1.5 10h2.2M16.3 10h2.2M4 4l1.6 1.6M14.4 14.4L16 16M4 16l1.6-1.6M14.4 5.6L16 4"/></svg><input type="range" id="lum" min="-50" max="50" step="1" value="0" aria-label="Brightness" disabled></div>
     </div>
   </div>
   <div class="codebox" id="codeBox">
@@ -909,7 +917,7 @@ async function onPick(e){const inp=e.target,fs=[...inp.files],f=fs[0];inp.value=
   let im=img,iw=img.naturalWidth,ih=img.naturalHeight;while(iw>src.width*2){const t=document.createElement('canvas');t.width=Math.ceil(iw/2);t.height=Math.ceil(ih/2);
    const tc=t.getContext('2d');tc.imageSmoothingEnabled=true;tc.imageSmoothingQuality='high';tc.drawImage(im,0,0,t.width,t.height);im=t;iw=t.width;ih=t.height}
   c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.drawImage(im,0,0,src.width,src.height);srcData=c.getImageData(0,0,src.width,src.height).data;
-  URL.revokeObjectURL(url);$('code').value='';manual=false;ocrJob++;srcVer++;reading=false;pending=false;codeChanged();$('codeBox').hidden=false;$('empty').style.display='none';view.style.display='block';for(const id of ['auto','reset','flip'])$(id).disabled=false;
+  URL.revokeObjectURL(url);$('code').value='';manual=false;ocrJob++;srcVer++;reading=false;pending=false;codeChanged();$('codeBox').hidden=false;$('empty').style.display='none';view.style.display='block';for(const id of ['auto','reset','flip','lum'])$(id).disabled=false;setLum(0);
   const done=prior||(img.naturalWidth===OW&&img.naturalHeight===OH);
   if(done){const w=src.width,h=src.height;quad=[[0,0],[w,0],[w,h],[0,h]];rot=0;userRot=true;layout();fitPhoto();status('',true);draw();render();
    if(prior&&CODE_RE.test(prior.code)){$('code').value=prior.code;manual=true;codeChanged()}}
@@ -1032,10 +1040,19 @@ for(const t of ['gesturestart','gesturechange'])view.addEventListener(t,e=>e.pre
 for(const t of ['gesturestart','gesturechange','gestureend'])document.addEventListener(t,e=>e.preventDefault(),{passive:false});
 
 const oc=document.createElement('canvas');oc.width=OW;oc.height=OH;const octx=oc.getContext('2d');
-function render(){if(!quad)return;const Q=[0,1,2,3].map(i=>quad[(i+rot)%4]),img=octx.createImageData(OW,OH);
- warp(srcData,src.width,src.height,Q,OW,OH,img.data);octx.putImageData(img,0,0);
+let wraw=null; // last straightened pixels, before brightness
+function render(){if(!quad)return;const Q=[0,1,2,3].map(i=>quad[(i+rot)%4]);wraw=octx.createImageData(OW,OH);
+ warp(srcData,src.width,src.height,Q,OW,OH,wraw.data);out()}
+// Brightness: gamma curve from the slider (-50..50 → gamma 2..0.5); the code reader still uses the untouched photo.
+function out(){if(!wraw)return;const v=+$('lum').value,img=octx.createImageData(OW,OH),d=img.data,r=wraw.data;
+ if(!v)d.set(r);else{const g=Math.pow(2,-v/50),L=new Uint8ClampedArray(256);for(let k=0;k<256;k++)L[k]=Math.round(255*Math.pow(k/255,g));
+  for(let k=0;k<d.length;k+=4){d[k]=L[r[k]];d[k+1]=L[r[k+1]];d[k+2]=L[r[k+2]];d[k+3]=255}}
+ octx.putImageData(img,0,0);
  oc.toBlob(b=>{if(!b)return;lastBlob=b;saveState('');imgBtn();if(outURL)URL.revokeObjectURL(outURL);outURL=URL.createObjectURL(b);$('outImg').src=outURL;if(noRead)noRead=false;else scheduleRead();
   $('outMeta').innerHTML=`<b>${OW}×${OH}</b> · ${Math.round(b.size/1024)} KB`;$('save').disabled=false;},'image/jpeg',.85);}
+function setLum(v){const l=$('lum');l.value=v;l.style.setProperty('--p',(+l.value+50)+'%')}
+let lumT=0;$('lum').addEventListener('input',()=>{setLum($('lum').value);cancelAnimationFrame(lumT);lumT=requestAnimationFrame(()=>{noRead=true;out()})});
+let lumTap=0;$('lum').addEventListener('pointerup',()=>{const t=Date.now();if(t-lumTap<300&&+$('lum').value){setLum(0);noRead=true;out();lumTap=0}else lumTap=t});
 
 $('auto').addEventListener('click',()=>src&&runDetect());
 $('reset').addEventListener('click',()=>{if(!src)return;quad=inset();longUp();fitPhoto();render();status('Corners reset. Drag them onto the cart.')});
@@ -1266,7 +1283,7 @@ function loadThumbs(root){root.querySelectorAll('img[data-c]').forEach(im=>lazy.
 // ---- navigation: one screen at a time; the round button opens the scanner (+) and closes it (×) ----
 // Leaving the scanner empties it: next time it opens blank, like the first time.
 function clearScan(){scanEd=null;src=null;srcData=null;quad=null;rot=0;lastBlob=null;manual=false;ocrJob++;srcVer++;reading=false;pending=false;clearTimeout(rcT);ownAsk=null;
- view.style.display='none';$('empty').style.display='';for(const id of ['auto','reset','flip','save'])$(id).disabled=true;
+ view.style.display='none';$('empty').style.display='';for(const id of ['auto','reset','flip','save','lum'])$(id).disabled=true;setLum(0);wraw=null;
  if(outURL){URL.revokeObjectURL(outURL);outURL=null}$('outImg').src=PLACE;$('outMeta').innerHTML=`<b>${OW}×${OH}</b> · –`;
  $('code').value='';codeChanged();status('')}
 function go(id,push=true){if(id===cur)return refresh();if(push){stack.push(cur);try{history.pushState(null,'')}catch(e){}}if(cur==='bk'&&!bkBusy){bkZip=null;bkPend=null;bkJob++}if(cur==='scan'){preset=null;clearScan()}
