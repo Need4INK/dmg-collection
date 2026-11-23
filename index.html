@@ -849,7 +849,7 @@ async function onPick(e){const inp=e.target,fs=[...inp.files],f=fs[0];inp.value=
  status('Loading photo…');
  const prior=await scannedInfo(f);
  const url=URL.createObjectURL(f),img=new Image();
- img.onload=()=>{const s=Math.min(1,MAXSRC/Math.max(img.naturalWidth,img.naturalHeight));
+ img.onload=()=>{let s=1;while(Math.max(img.naturalWidth,img.naturalHeight)*s>MAXSRC*1.05)s/=2; // exact halvings only (same pixels in every browser)
   src=document.createElement('canvas');src.width=Math.round(img.naturalWidth*s);src.height=Math.round(img.naturalHeight*s);
   const c=src.getContext('2d',{willReadFrequently:true});
   // shrink big photos in halving steps: one big jump in drawImage leaves jagged edges (Safari), which throws off the cart finder
