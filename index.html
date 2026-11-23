@@ -262,11 +262,11 @@ html.rot.cw body{transform:translateX(100vw) rotate(90deg);--st:env(safe-area-in
    Edit: a "Note" row at the top of the edit card (max 50). Edited/Added pill sits on the photo's bottom-right corner. */
 #gv .gtx{flex:1;min-width:0;align-self:stretch;padding-right:14px;padding-bottom:0}
 #gv .gphw{position:relative;flex:none}#gv .gphw .cust{position:absolute;right:5px;bottom:5px;margin:0;z-index:2}
-.gnote{margin-top:auto;height:42px;flex:none;padding:4px 10px;border-radius:10px;background:#26232a;color:#e8e6ea;font:13px/17px Inter,system-ui,sans-serif;overflow:hidden}
+.gnote{margin-top:auto;height:42px;text-align:left;flex:none;padding:4px 10px;border-radius:10px;background:#26232a;color:#e8e6ea;font:13px/17px Inter,system-ui,sans-serif;overflow:hidden}
 .gnote span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
 .gnote.empty span{color:#5f5a66}.gnote[hidden]{display:none}
 .gpop{position:absolute;z-index:5;padding:10px 12px;border-radius:12px;background:#3a3640;color:#fff;font:14px/19px Inter,system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.6);overflow-wrap:anywhere}.gpop[hidden]{display:none}
-#gv .gtx .sw{align-self:stretch;justify-content:space-between} /* English toggle's right edge = the note box's right edge */
+#gv .gtx .sw{align-self:stretch;justify-content:space-between;text-align:left} /* English toggle's right edge = the note box's right edge */
 .vr.nt{gap:10px;padding:0}.vr.nt>span{width:30px;flex:none;font:13px Inter,system-ui,sans-serif;color:#a9a4b0}
 .vr.nt label{flex:1;min-width:0;position:relative;display:flex}.vr.nt b{position:absolute;right:9px;top:50%;transform:translateY(-50%);font:500 11px Inter,system-ui,sans-serif;color:#6f6a76;pointer-events:none}
 .vr.nt input{flex:1;min-width:0;padding-right:58px!important;height:34px;border:1px solid #3b3e44;border-radius:8px;background:#18191c;color:#e8e6ea;font:14px Inter,system-ui,sans-serif;padding:0 10px}
@@ -351,7 +351,7 @@ html.rot.cw body{transform:translateX(100vw) rotate(90deg);--st:env(safe-area-in
   </div>
   <div class="ghead">
     <div class="gphw"><div class="gph" id="gPh"></div><span class="cust" id="gC" hidden></span></div>
-    <div class="gtx"><span id="gY"></span><input id="gYi" hidden inputmode="numeric" maxlength="4" placeholder="Year" autocomplete="off" enterkeyhint="done"><span class="own" id="gO"></span><button class="sw" id="enG" role="switch" aria-checked="false">English<i></i></button><div class="gnote" id="gN" aria-label="Note"><span id="gNt"></span></div></div>
+    <div class="gtx"><span id="gY"></span><input id="gYi" hidden inputmode="numeric" maxlength="4" placeholder="Year" autocomplete="off" enterkeyhint="done"><span class="own" id="gO"></span><button class="sw" id="enG" role="switch" aria-checked="false">English game<i></i></button><div class="gnote" id="gN" aria-label="Note"><span id="gNt"></span></div></div>
   <div class="gpop" id="gNp" hidden></div>
   </div>
   <div class="card vars" id="gVars"></div>
