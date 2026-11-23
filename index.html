@@ -1290,9 +1290,10 @@ function go(id,push=true){if(id===cur)return refresh();if(push){stack.push(cur);
  if(cur==='gv'&&gEditing&&id!=='scan')endEdit(); // left without Save: edits are dropped (a trip to the scanner from the photo keeps them)
  if(id==='gv'&&gEditing&&gScanOwn){for(const r of gRows){const c=r.c.trim().toUpperCase();if(OWN_CODES.has(c)!==gScanOwn.has(c))r.own=OWN_CODES.has(c)}} // ownership changed in the scanner
  gScanOwn=null;$('fab').hidden=id==='gv'&&gEditing;
- if(id==='home'&&$('cQ').value){$('cQ').value='';$('cQx').hidden=true;if(built)applyFilter()} // back on the cover: the catalog search starts empty again
- cur=id;
+ if(id==='home'){$('cQ').value='';$('cQx').hidden=true;setFilter('all')} // back on the cover: the catalog starts fresh (no search, All, top)
+ const from=cur;cur=id;
  for(const s of document.querySelectorAll('.scr'))s.classList.toggle('on',s.id===id);
+ if(id==='cat'&&from==='home')$('cGrid').scrollTop=0;
  const f=$('fab'),sc=id==='scan';f.classList.toggle('close',sc);f.setAttribute('aria-label',sc?'Close scanner':'Scan a cart');
  if(sc)layout();refresh()}
 // Back goes through the browser history, so Android's back button / gesture steps back inside the app instead of closing it.
@@ -1385,7 +1386,7 @@ function drawCat(){if(!built)buildCat();const g=$('cGrid');
 function setFilter(f){filt=f;$('cSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.f===f));if(built)applyFilter()}
 function applyFilter(){const q=$('cQ').value.trim().toLowerCase();
  $('cGrid').querySelectorAll('.tile[data-g]').forEach(t=>{const i=+t.dataset.g,own=OWN_GAMES.has(i),G=GAMES[i];
-  let ok=filt==='all'||(filt==='multi'?(OWN_GAMES.get(i)||[]).length>1:(filt==='own')===own);if(ok&&q)ok=G[0].toLowerCase().includes(q)||G[1].some(c=>c.toLowerCase().includes(q));t.hidden=!ok})}
+  let ok=filt==='all'||(filt==='multi'?(OWN_GAMES.get(i)||[]).length>1:(filt==='own')===own);if(ok&&q)ok=G[0].toLowerCase().includes(q)||G[1].some(c=>c.toLowerCase().includes(q));t.hidden=!ok});$('cNew').hidden=filt!=='all'} // + Add new cart only under All
 $('cSeg').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(b){setFilter(b.dataset.f);$('cGrid').scrollTop=0}});
 function setQuery(v){$('cQ').value=v;$('cQx').hidden=!v;applyFilter();$('cGrid').scrollTop=0}
 $('cQ').addEventListener('input',()=>setQuery($('cQ').value));
