@@ -258,6 +258,7 @@ html.rot.cw body{transform:translateX(100vw) rotate(90deg);--st:env(safe-area-in
 #gPh{position:relative}#gPh.tap{cursor:pointer;-webkit-tap-highlight-color:transparent}
 #gPh .pw{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(20,20,22,.55);display:grid;place-items:center;color:#fff;opacity:.9;pointer-events:none}
 .fab[hidden]{display:none}
+#gRow.ed{margin-right:0} /* editing: no + button, the two buttons share the full width */
 </style>
 </head>
 <body>
@@ -1144,10 +1145,11 @@ function codeChanged(){saveState('');ownAsk=null;const v=$('code').value.trim().
 $('code').addEventListener('input',codeChanged);
 // Add / remove the current code (exact regional variant) to the collection on this phone.
 // Add image: keeps the current photo in the app as this code's photo (replaces an older one). Does not change ownership; an owned cart moves to the front of Recently added.
-function imgBtn(){const b=$('addImg'),v=$('code').value.trim().toUpperCase();b.disabled=!(lastBlob&&BY_CODE.has(v));b.classList.remove('saved');b.dataset.s=''}
+function imgBtn(){const b=$('addImg'),v=$('code').value.trim().toUpperCase();b.disabled=!(lastBlob&&BY_CODE.has(v)&&(!scanEd||v===scanEd));b.classList.remove('saved');b.dataset.s=''}
 $('addImg').addEventListener('click',async()=>{const b=$('addImg'),v=$('code').value.trim().toUpperCase();if(!lastBlob||!BY_CODE.has(v))return;
- b.disabled=true;await keepPhoto(v,lastBlob,true);if(OWN_CODES.has(v))addRecent([v]);b.disabled=false;b.classList.add('saved');b.dataset.s='added'});
-function ownBtn(v){imgBtn();const b=$('own'),ok=BY_CODE.has(v);b.disabled=!ok;b.textContent=ok&&OWN_CODES.has(v)?'Remove from collection':'Add to collection';
+ b.disabled=true;if(scanEd){if(v===scanEd&&gPhD)gPhD.set(v,await tagJpeg(lastBlob,photoMeta(v)).catch(()=>lastBlob))}else{await keepPhoto(v,lastBlob,true);if(OWN_CODES.has(v))addRecent([v])}b.disabled=false;b.classList.add('saved');b.dataset.s='added'});
+function ownBtn(v){imgBtn();const b=$('own'),ok=BY_CODE.has(v);b.disabled=!ok||!!scanEd; // re-editing a photo from Edit game: ownership is set there
+b.textContent=ok&&OWN_CODES.has(v)?'Remove from collection':'Add to collection';
  const e=$('enS');e.disabled=!ok;e.setAttribute('aria-checked',ok&&ENG.has(v)?'true':'false')}
 function setEnglish(c,on){on?ENG.add(c):ENG.delete(c);markEdit();try{localStorage.setItem('dmgEnglish',JSON.stringify([...ENG]))}catch(e){}}
 $('enS').addEventListener('click',()=>{const v=$('code').value.trim().toUpperCase();if(!BY_CODE.has(v))return;setEnglish(v,!ENG.has(v));ownBtn(v)});
@@ -1263,7 +1265,7 @@ function loadThumbs(root){root.querySelectorAll('img[data-c]').forEach(im=>lazy.
 
 // ---- navigation: one screen at a time; the round button opens the scanner (+) and closes it (×) ----
 // Leaving the scanner empties it: next time it opens blank, like the first time.
-function clearScan(){src=null;srcData=null;quad=null;rot=0;lastBlob=null;manual=false;ocrJob++;srcVer++;reading=false;pending=false;clearTimeout(rcT);ownAsk=null;
+function clearScan(){scanEd=null;src=null;srcData=null;quad=null;rot=0;lastBlob=null;manual=false;ocrJob++;srcVer++;reading=false;pending=false;clearTimeout(rcT);ownAsk=null;
  view.style.display='none';$('empty').style.display='';for(const id of ['auto','reset','flip','save'])$(id).disabled=true;
  if(outURL){URL.revokeObjectURL(outURL);outURL=null}$('outImg').src=PLACE;$('outMeta').innerHTML=`<b>${OW}×${OH}</b> · –`;
  $('code').value='';codeChanged();status('')}
@@ -1378,16 +1380,16 @@ $('cGrid').addEventListener('click',e=>{if(e.target.closest('#cNew'))return open
 // gSel = the variant shown on the page: its photo, its English switch, and what + (scanner) and Forget photo act on.
 // Each variant (exact code) keeps its own photo; tap a variant row to show it.
 // Edit owned works on a draft: ticks and forgotten photos apply only on Save; leaving the page any other way drops them.
-let gScanOwn=null,gSel=null,gURL=null,gForgot=null,gRows=null,gNew=false,gArm=false; // gArm: delete waiting for its confirming 2nd tap ('game', 'photo' or a row index)
+let gScanOwn=null,gPhD=null,scanEd=null,gSel=null,gURL=null,gForgot=null,gRows=null,gNew=false,gArm=false; // gArm: delete waiting for its confirming 2nd tap ('game', 'photo' or a row index)
 // Edit game works on a draft (name, year, variant rows with codes and ticks, forgotten photos); only Save applies it.
 const pickSel=i=>{const mine=OWN_GAMES.get(i)||[];return photoCode(i)||GAMES[i][1].find(c=>PHOTOS.has(c))||mine[0]||GAMES[i][1][0]};
 function openGame(i){gIdx=i;endEdit();gSel=pickSel(i);go('gv')}
 function openNew(){gIdx=-1;gSel=null;endEdit();go('gv');gNew=true;startEdit(['','',''])}
-function startEdit(G){gEditing=true;gArm=false;gForgot=new Set();gRows=(G[1]||[]).map(c=>({o:c,c,own:OWN_CODES.has(c)}));if(!gRows.length)gRows.push({o:null,c:'',own:true});
+function startEdit(G){gEditing=true;gArm=false;gForgot=new Set();gPhD=new Map();gRows=(G[1]||[]).map(c=>({o:c,c,own:OWN_CODES.has(c)}));if(!gRows.length)gRows.push({o:null,c:'',own:true});
  $('gTi').value=G[0];$('gYi').value=G[2]||'';['gTi','gYi'].forEach(id=>$(id).classList.remove('bad'));drawGame();if(gNew)setTimeout(()=>$('gTi').focus(),50)}
-function endEdit(){gEditing=false;gRows=null;gForgot=null;gArm=false;if(gNew){gNew=false}}
+function endEdit(){gEditing=false;gRows=null;gForgot=null;gPhD=null;gArm=false;if(gNew){gNew=false}}
 const rowCodes=()=>gRows.map(r=>r.c.trim().toUpperCase());
-const isOwn=c=>gEditing?gRows.some(r=>r.c.trim().toUpperCase()===c&&r.own):OWN_CODES.has(c),hasPh=c=>PHOTOS.has(c)&&!(gEditing&&gForgot.has(c));
+const isOwn=c=>gEditing?gRows.some(r=>r.c.trim().toUpperCase()===c&&r.own):OWN_CODES.has(c),hasPh=c=>(PHOTOS.has(c)||!!(gEditing&&gPhD.has(c)))&&!(gEditing&&gForgot.has(c));
 async function drawGame(){const i=gIdx,G=gNew?[$('gTi').value,rowCodes().filter(Boolean),$('gYi').value]:GAMES[i];if(!G)return;
  if(!gNew&&!G[1].includes(gSel))gSel=pickSel(i);
  const sel=gSel,own=sel&&isOwn(sel),has=sel&&hasPh(sel),codes=gEditing?rowCodes().filter(Boolean):G[1],mine=codes.filter(isOwn);
@@ -1397,8 +1399,8 @@ const mineG=!gNew&&isMine(i);$('gC').hidden=!mineG&&!gNew;$('gC').innerHTML=PEN+
  $('gO').textContent=mine.length?`Owned · ${mine.length} of ${codes.length}`:'Missing';$('gO').className=mine.length?'own':'';
  $('enG').setAttribute('aria-checked',sel&&ENG.has(sel)?'true':'false');$('enG').setAttribute('aria-label','English · '+(sel||''));$('enG').disabled=!sel||gNew;
  $('gVars').classList.toggle('edit',gEditing);$('gEdit').classList.toggle('on',gEditing);$('gEdit').textContent=gEditing?'Save':'Edit game';
- const f=$('gForget'),forgot=gEditing&&sel&&gForgot.has(sel);f.hidden=!gEditing;$('gRow').classList.toggle('solo',!gEditing);
- f.textContent=forgot?'Keep photo':gArm==='photo'?'Tap to confirm':'Forget photo';f.classList.toggle('arm',gArm==='photo');f.disabled=!(sel&&PHOTOS.has(sel));
+ const f=$('gForget'),forgot=gEditing&&sel&&gForgot.has(sel);f.hidden=!gEditing;$('gRow').classList.toggle('solo',!gEditing);$('gRow').classList.toggle('ed',gEditing);
+ f.textContent=forgot?'Keep photo':gArm==='photo'?'Tap to confirm':'Forget photo';f.classList.toggle('arm',gArm==='photo');f.disabled=!(sel&&(PHOTOS.has(sel)||gPhD&&gPhD.has(sel)));
  if(gEditing){const ae=document.activeElement,fk=ae&&ae.dataset?ae.dataset.k:null,pos=ae&&ae.selectionStart;
   $('gVars').innerHTML=gRows.map((r,k)=>{const c=r.c.trim().toUpperCase(),sx=c.split('-').pop();
    return `<div class="vr ed${r.own?' on':''}${c&&c===sel?' sel':''}"><button class="tk" data-t="${k}" aria-label="Owned">${FLAG(r.own)}</button><input data-k="${k}" value="${esc(r.c)}" placeholder="DMG-XX-YYY" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done"><span class="rg">${esc(c?REGIONS[sx]||'':'')}</span><button class="rm${gArm===k?' arm':''}" data-r="${k}" aria-label="Remove variant">${gArm===k?'Delete':'×'}</button></div>`}).join('')
@@ -1408,7 +1410,7 @@ const mineG=!gNew&&isMine(i);$('gC').hidden=!mineG&&!gNew;$('gC').innerHTML=PEN+
   return `<button class="vr${o?' on':''}${c===sel?' sel':''}" data-c="${c}">${FLAG(o)}<span class="cd">${c}</span>${ENG.has(c)?'<b class="en">EN</b>':''}<span>${esc(REGIONS[s]||s)}</span></button>`}).join('');
  const ph=$('gPh'),tap=gEditing&&!gNew&&!!sel&&BY_CODE.get(sel)===i;ph.classList.toggle('tap',tap);$('fab').hidden=gEditing;
  ph.innerHTML=(own||has?`<span class="cart"><img alt="${esc(G[0])} · ${sel}" src="${PLACE}"></span>`:'<span class="ghost"></span>')+(tap?PENW:'');
- if(has){const r=await idb('readonly',s=>s.get(sel));if(r&&gIdx===i&&gSel===sel&&cur==='gv'){if(gURL)URL.revokeObjectURL(gURL);gURL=URL.createObjectURL(r.full);const im=ph.querySelector('img');if(im)im.src=gURL}}}
+ if(has){const d=gEditing&&gPhD.get(sel),r=d?{full:d}:await idb('readonly',s=>s.get(sel));if(r&&gIdx===i&&gSel===sel&&cur==='gv'){if(gURL)URL.revokeObjectURL(gURL);gURL=URL.createObjectURL(r.full);const im=ph.querySelector('img');if(im)im.src=gURL}}}
 // Moving a code (renamed variant) carries its ownership, English flag, recent entry and photo; dropping one removes them.
 async function moveCode(a,b){if(ENG.has(a)){ENG.delete(a);ENG.add(b)}
  try{localStorage.setItem('dmgRecent',JSON.stringify(recentList().map(r=>r.c===a?{...r,c:b}:r)))}catch(e){}
@@ -1429,9 +1431,10 @@ async function saveGame(){const old=gNew?null:GAMES[gIdx],t=$('gTi').value.trim(
  if(old)for(const c of old[1])if(!gRows.some(r=>r.o===c)){own.delete(c);await dropCode(c)}
  for(const r of gRows){const c=r.c.trim().toUpperCase();if(r.own){if(!own.has(c))added.push(c);own.add(c)}else own.delete(c)}
  for(const c of gForgot){await idb('readwrite',st=>st.delete(c));PHOTOS.delete(c);if(THUMB.has(c)){URL.revokeObjectURL(THUMB.get(c));THUMB.delete(c)}}
+ const newPh=[];for(const r of gRows){const c=r.c.trim().toUpperCase(),b=r.o&&gPhD.get(r.o);if(b&&!gForgot.has(r.o)&&!gForgot.has(c)){await keepPhoto(c,b,false);newPh.push(c)}} // photos adjusted in the scanner
  const g=[t,codes,+y];let u=null;if(old&&old.k){const b=BASE.find(x=>keyOf(x)===old.k); // unchanged from the built-in list (e.g. only owned ticks changed): not an edit
   if(b&&JSON.stringify(b)===JSON.stringify(g))delete MODS.e[old.k];else MODS.e[old.k]=g}else if(old){const x=MODS.n.find(x=>x.u===old.u);if(x)x.g=g;u=old.u}else{u=Date.now();MODS.n.push({u,g})}
- commitGames([...own]);addRecent(added);const idx=GAMES.findIndex(x=>old&&old.k?x.k===old.k:x.u===u);
+ commitGames([...own]);addRecent([...added,...newPh.filter(c=>own.has(c)&&!added.includes(c))]);const idx=GAMES.findIndex(x=>old&&old.k?x.k===old.k:x.u===u);
  const sel=gSel&&codes.includes(gSel)?gSel:null;gNew=false;endEdit();gIdx=idx;gSel=sel||pickSel(idx);drawGame()}
 // Reset: back to the built-in version; codes only my version had lose their ownership, English flag and photo.
 async function resetGame(){const G=GAMES[gIdx];if(!G||G.k==null)return;const k=G.k,b=BASE.find(x=>keyOf(x)===k),own=new Set(OWN_CODES);
@@ -1456,10 +1459,10 @@ $('gVars').addEventListener('input',e=>{const k=e.target.dataset.k;if(k==null)re
 $('enG').addEventListener('click',()=>{if(!gSel||gNew)return;setEnglish(gSel,!ENG.has(gSel));drawGame()});
 // Editing: tapping the photo opens the scanner with this variant's saved photo loaded (corners = whole picture) to adjust it; Add image replaces it.
 $('gPh').addEventListener('click',async()=>{if(!$('gPh').classList.contains('tap'))return;const c=gSel;gForgot.delete(c);gArm=false;gScanOwn=new Set(OWN_CODES);
- const r=PHOTOS.has(c)?await idb('readonly',s=>s.get(c)):null;go('scan');preset=c;$('code').value=c;manual=true;codeChanged();
+ const d=gPhD.get(c),r=d?{full:d}:PHOTOS.has(c)?await idb('readonly',s=>s.get(c)):null;go('scan');scanEd=c;preset=c;$('code').value=c;manual=true;codeChanged();
  if(r&&r.full)onPick({target:{files:[new File([r.full],c+'.jpg',{type:'image/jpeg'})],value:''}})});
 // Forget photo (while editing): marks the shown variant's photo to be deleted on Save; tap again (Keep photo) to undo.
-$('gForget').addEventListener('click',()=>{const c=gSel;if(!gEditing||!c||!PHOTOS.has(c))return;
+$('gForget').addEventListener('click',()=>{const c=gSel;if(!gEditing||!c||!(PHOTOS.has(c)||gPhD.has(c)))return;
  if(gForgot.has(c))gForgot.delete(c);else if(gArm!=='photo'){gArm='photo';return drawGame()}else gForgot.add(c);gArm=false;drawGame()});
 // Any other tap cancels a delete waiting for confirmation.
 document.addEventListener('pointerdown',e=>{if(gArm===false||!gEditing)return;const t=e.target;
