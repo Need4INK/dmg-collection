@@ -270,7 +270,8 @@ html.rot.cw body{transform:translateX(100vw) rotate(90deg);--st:env(safe-area-in
  /* English toggle's right edge = the note box's right edge */
 .vr.nt{gap:10px;padding:0}.vr.nt>span{width:30px;flex:none;font:13px Inter,system-ui,sans-serif;color:#a9a4b0}
 .vr.nt label{flex:1;min-width:0;position:relative;display:flex}.vr.nt b{position:absolute;right:9px;top:50%;transform:translateY(-50%);font:500 11px Inter,system-ui,sans-serif;color:#6f6a76;pointer-events:none}
-.vr.nt input{flex:1;min-width:0;padding-right:58px!important;height:34px;border:1px solid #3b3e44;border-radius:8px;background:#18191c;color:#e8e6ea;font:14px Inter,system-ui,sans-serif;padding:0 10px}
+.vr.nt{align-items:flex-start;padding:8px 0!important}.vr.nt>span{padding-top:8px}.vr.nt b{top:auto!important;bottom:4px;transform:none!important}
+.vr.nt textarea{resize:none;outline:none;font:14px/17px Inter,system-ui,sans-serif!important;padding:5px 10px 16px!important;height:59px!important;flex:1;min-width:0;border:1px solid #3b3e44;border-radius:8px;background:#18191c;color:#e8e6ea;font:14px Inter,system-ui,sans-serif;padding:0 10px}
 .cart.fade{opacity:.35} /* catalog: not owned, but a variant has a photo */
 /* Backup: Deleted games (built-in games removed with Delete game) → list with Restore. */
 .delb{display:flex;align-items:center;gap:8px;width:100%;height:38px;padding:0 14px;border-radius:19px;border:0;background:#2a2730;color:#e8e6ea;font:600 14px Inter,sans-serif;flex:none}
@@ -1450,7 +1451,7 @@ const mineG=!gNew&&isMine(i);$('gC').hidden=!mineG&&!gNew;$('gC').innerHTML=PEN+
  const f=$('gForget'),forgot=gEditing&&sel&&gForgot.has(sel);f.hidden=!gEditing;$('gRow').classList.toggle('solo',!gEditing);$('gRow').classList.toggle('ed',gEditing);
  f.textContent=forgot?'Keep photo':gArm==='photo'?'Tap to confirm':'Forget photo';f.classList.toggle('arm',gArm==='photo');f.disabled=!(sel&&(PHOTOS.has(sel)||gPhD&&gPhD.has(sel)));
  if(gEditing){const ae=document.activeElement,fk=ae&&ae.dataset?ae.dataset.k:null,pos=ae&&ae.selectionStart,fn=ae&&ae.id==='gNi';
-  $('gVars').innerHTML=`<div class="vr nt"><span>Note</span><label><input id="gNi" maxlength="100" value="${esc(gNote)}" autocomplete="off" spellcheck="false" enterkeyhint="done"><b id="gNc">${gNote.length}/100</b></label></div>`+gRows.map((r,k)=>{const c=r.c.trim().toUpperCase(),sx=c.split('-').pop();
+  $('gVars').innerHTML=`<div class="vr nt"><span>Note</span><label><textarea id="gNi" maxlength="100" rows="3" autocomplete="off" spellcheck="false" enterkeyhint="done">${esc(gNote)}</textarea><b id="gNc">${gNote.length}/100</b></label></div>`+gRows.map((r,k)=>{const c=r.c.trim().toUpperCase(),sx=c.split('-').pop();
    return `<div class="vr ed${r.own?' on':''}${c&&c===sel?' sel':''}"><button class="tk" data-t="${k}" aria-label="Owned">${FLAG(r.own)}</button><input data-k="${k}" value="${esc(r.c)}" placeholder="DMG-XX-YYY" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done"><span class="rg">${esc(c?REGIONS[sx]||'':'')}</span><button class="rm${gArm===k?' arm':''}" data-r="${k}" aria-label="Remove variant">${gArm===k?'Delete':'×'}</button></div>`}).join('')
    +'<button class="vr add" id="gAdd">+ Add variant</button>'+(!gNew&&G.k!=null&&G.k in MODS.e?`<button class="vr rst${gArm==='reset'?' arm':''}" id="gRst">${gArm==='reset'?'Tap again to reset to built-in':'Reset to built-in'}</button>`:'')+(gNew?'':`<button class="vr del${gArm==='game'?' arm':''}" id="gDelB">${gArm==='game'?'Tap again to delete this game':'Delete game'}</button>`);
   if(fn){const el=$('gNi');el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}
@@ -1509,7 +1510,8 @@ $('gVars').addEventListener('click',e=>{
  if(e.target.closest('#gAdd')){gRows.push({o:null,c:'',own:false});gArm=false;drawGame();const l=$('gVars').querySelectorAll('input[data-k]');l[l.length-1].focus();return}
  if(e.target.closest('#gDelB')){if(gArm==='game')return deleteGame();gArm='game';return drawGame()}
  if(e.target.closest('#gRst')){if(gArm==='reset')return resetGame();gArm='reset';return drawGame()}});
-$('gVars').addEventListener('input',e=>{if(e.target.id==='gNi'){gNote=e.target.value;$('gNc').textContent=gNote.length+'/100';return}const k=e.target.dataset.k;if(k==null)return;gRows[+k].c=e.target.value;e.target.classList.remove('bad');
+$('gVars').addEventListener('keydown',e=>{if(e.target.id==='gNi'&&e.key==='Enter'){e.preventDefault();e.target.blur()}}); // one-line note: Enter = done
+$('gVars').addEventListener('input',e=>{if(e.target.id==='gNi'){if(/\n/.test(e.target.value))e.target.value=e.target.value.replace(/\n/g,' ');gNote=e.target.value;$('gNc').textContent=gNote.length+'/100';return}const k=e.target.dataset.k;if(k==null)return;gRows[+k].c=e.target.value;e.target.classList.remove('bad');
  const c=e.target.value.trim().toUpperCase(),rg=e.target.parentNode.querySelector('.rg');if(rg)rg.textContent=REGIONS[c.split('-').pop()]||'';
  const n=rowCodes().filter(Boolean).length;$('gY').textContent=`${n} variant${n===1?'':'s'}`});
 ['gTi','gYi'].forEach(id=>{$(id).addEventListener('input',()=>$(id).classList.remove('bad'));$(id).addEventListener('keydown',e=>{if(e.key==='Enter')$(id).blur()})});
