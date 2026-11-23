@@ -260,14 +260,14 @@ html.rot.cw body{transform:translateX(100vw) rotate(90deg);--st:env(safe-area-in
 .fab[hidden]{display:none}
 /* Game note (view): 2-line box under English, bottom on the photo's bottom, right gap 14px = the photo's left gap; "…" when longer, tap shows it all.
    Edit: a "Note" row at the top of the edit card (max 50). Edited/Added pill sits on the photo's bottom-right corner. */
-#gv .gtx{flex:1;min-width:0;align-self:stretch;padding-right:14px;padding-bottom:0}
+#gv .gtx{flex:1;min-width:0;align-self:stretch;padding-right:0;padding-bottom:0} /* right edge = the variant card's right edge */
 #gv .gphw{position:relative;flex:none}#gv .gphw .cust{position:absolute;right:5px;bottom:5px;margin:0;z-index:2}
 .gnote{margin-top:auto;height:42px;text-align:left;flex:none;padding:4px 10px;border-radius:10px;background:#26232a;color:#e8e6ea;font:13px/17px Inter,system-ui,sans-serif;overflow:hidden}
 .gnote span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
 .gnote.empty span{color:#5f5a66}.gnote[hidden]{display:none}
 .gpop{position:absolute;z-index:5;padding:10px 12px;border-radius:12px;background:#3a3640;color:#fff;font:14px/19px Inter,system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.6);overflow-wrap:anywhere}.gpop[hidden]{display:none}
-#gv .gtx .sw{align-self:stretch;justify-content:space-between;text-align:left;white-space:nowrap;font-size:12px} /* "English game" on one line */
-#gv .gtx{container-type:inline-size}@container (max-width:125px){#gv .gtx .sw{font-size:10.5px;gap:4px}} /* narrow column (iPhone SE) */ /* English toggle's right edge = the note box's right edge */
+#gv .gtx .sw{align-self:stretch;justify-content:space-between;gap:0;text-align:left;white-space:nowrap} /* "English game" on one line, same 13px as the column */
+ /* English toggle's right edge = the note box's right edge */
 .vr.nt{gap:10px;padding:0}.vr.nt>span{width:30px;flex:none;font:13px Inter,system-ui,sans-serif;color:#a9a4b0}
 .vr.nt label{flex:1;min-width:0;position:relative;display:flex}.vr.nt b{position:absolute;right:9px;top:50%;transform:translateY(-50%);font:500 11px Inter,system-ui,sans-serif;color:#6f6a76;pointer-events:none}
 .vr.nt input{flex:1;min-width:0;padding-right:58px!important;height:34px;border:1px solid #3b3e44;border-radius:8px;background:#18191c;color:#e8e6ea;font:14px Inter,system-ui,sans-serif;padding:0 10px}
