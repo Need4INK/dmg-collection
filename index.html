@@ -290,6 +290,7 @@ html.rot.cw body{transform:translateX(100vw) rotate(90deg);--st:env(safe-area-in
 #lum::-moz-range-thumb{width:18px;height:18px;border-radius:50%;border:0;background:#e8e6ea}
 #lum:disabled{opacity:.4}
 #gRow.ed{margin-right:0} /* editing: no + button, the two buttons share the full width */
+.vr .phi{flex:none;width:22px;display:grid;place-items:center;margin-left:-2px;color:#4a4651}.vr .phi.y{color:#d8d4dc}.vr .phi svg{display:block}
 </style>
 </head>
 <body>
@@ -1263,6 +1264,9 @@ $('flip').addEventListener('click',()=>{userRot=true;rot=(rot+3)%4;render()});
 // "full" is the saved 560x650 JPEG with its dmg metadata, "thumb" a 168x195 copy for the grids.
 let preset=null,dirty=true,cur='home',stack=[],gIdx=-1,gEditing=false,filt='all';
 const PHOTOS=new Set(),THUMB=new Map();
+// Game page variant rows: camera icon, solid = this variant has a stored photo, faint outline = none.
+const PHI_Y='<i class="phi y" aria-label="Photo stored"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" fill-rule="evenodd" d="M4 7h3l2-2.5h6L17 7h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1zm8 2.4a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 0 0 0-7.2z"/></svg></i>',
+ PHI_N='<i class="phi" aria-label="No photo"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 7h3l2-2.5h6L17 7h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg></i>';
 const PLACE=$('outImg').src; // grey cart drawing used when there is no photo yet
 const DB=new Promise(res=>{try{const r=indexedDB.open('dmgdb',1);r.onupgradeneeded=()=>r.result.createObjectStore('photos');
  r.onsuccess=()=>res(r.result);r.onerror=()=>res(null)}catch(e){res(null)}});
@@ -1457,7 +1461,7 @@ const mineG=!gNew&&isMine(i);$('gC').hidden=!mineG&&!gNew;$('gC').innerHTML=PEN+
   if(fn){const el=$('gNi');el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}
   if(fk!=null){const el=$('gVars').querySelector(`input[data-k="${fk}"]`);if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}}}
  else $('gVars').innerHTML=G[1].map(c=>{const o=isOwn(c),s=c.split('-').pop();
-  return `<button class="vr${o?' on':''}${c===sel?' sel':''}" data-c="${c}">${FLAG(o)}<span class="cd">${c}</span>${ENG.has(c)?'<b class="en">EN</b>':''}<span>${esc(REGIONS[s]||s)}</span></button>`}).join('');
+  return `<button class="vr${o?' on':''}${c===sel?' sel':''}" data-c="${c}">${FLAG(o)}<span class="cd">${c}</span>${ENG.has(c)?'<b class="en">EN</b>':''}<span>${esc(REGIONS[s]||s)}</span>${PHOTOS.has(c)?PHI_Y:PHI_N}</button>`}).join('');
  const ph=$('gPh'),tap=gEditing&&!gNew&&!!sel&&BY_CODE.get(sel)===i;ph.classList.toggle('tap',tap);$('fab').hidden=gEditing;
  ph.innerHTML=(own||has?`<span class="cart"><img alt="${esc(G[0])} · ${sel}" src="${PLACE}"></span>`:'<span class="ghost"></span>')+(tap?PENW:'');
  if(has){const d=gEditing&&gPhD.get(sel),r=d?{full:d}:await idb('readonly',s=>s.get(sel));if(r&&gIdx===i&&gSel===sel&&cur==='gv'){if(gURL)URL.revokeObjectURL(gURL);gURL=URL.createObjectURL(r.full);const im=ph.querySelector('img');if(im)im.src=gURL}}}
